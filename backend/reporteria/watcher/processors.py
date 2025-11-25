@@ -1,4 +1,5 @@
 from datetime import timedelta, datetime
+from reporteria.models import AsRunLogFile
 from zoneinfo import ZoneInfo
 from .upgrader import upgrade
 from pathlib import Path
@@ -7,6 +8,70 @@ import pandas as pd
 import csv
 import time, os
 import re
+
+def is_file_processed(file_name: str) -> bool:
+    """Verifica si un archivo ya tiene un registro en la base de datos."""
+    return AsRunLogFile.objects.filter(file_name=file_name).exists()
+
+def process_yesterday_file(folder_path: str, system: str, trigger_file_path: str):
+    
+    # 1. Obtener la fecha de la última modificación del archivo que disparó el evento
+    try:
+        timestamp = os.path.getmtime(trigger_file_path)
+        trigger_date = datetime.fromtimestamp(timestamp)
+        print(f"[DEBUG] Fecha base del archivo: {trigger_date.strftime('%Y-%m-%d %H:%M:%S')}")
+        
+    except FileNotFoundError:
+        print(f"[ERROR] Archivo trigger no encontrado: {trigger_file_path}")
+        return
+
+    # 2. Calcular la fecha OBJETIVO (un día antes de la fecha del archivo trigger)
+    target_date = trigger_date - timedelta(days=1)
+    
+    # Nos interesa solo la parte de la fecha (AAAAMMDD) para la comparación
+    target_date_only = target_date.date()
+
+    print(f"[INFO] Buscando log modificado el: {target_date_only.strftime('%Y-%m-%d')} en la carpeta {system}.")
+
+    # 3. Iterar sobre todos los archivos en la carpeta y filtrar por fecha
+    path_obj = Path(folder_path)
+    # Solo buscamos en la carpeta en la que se disparó el trigger (Path.iterdir())
+    
+    file_to_process = None
+    
+    # Iteramos sobre todos los elementos en el directorio
+    for file in path_obj.iterdir():
+        if file.is_file():
+            
+            # Obtenemos la fecha de última modificación del archivo actual en el loop
+            try:
+                mod_timestamp = os.path.getmtime(file)
+                mod_date = datetime.fromtimestamp(mod_timestamp).date()
+            except OSError:
+                # Omitir archivos que no se pueden leer o están bloqueados
+                continue
+                
+            # Comparamos la fecha de modificación con la fecha objetivo (solo el día)
+            if mod_date == target_date_only:
+                file_to_process = file
+                print(f"[DEBUG] Coincidencia encontrada: {file.name}, modificado el {mod_date}")
+                break # Encontrado el archivo, salimos del loop
+    
+    if not file_to_process:
+        print(f"[WARN] No se encontró un archivo de log cuya fecha de modificación sea {target_date_only} en {system}.")
+        return
+
+    file_name = file_to_process.name
+
+    # 4. Verificar si el archivo ya fue procesado
+    if is_file_processed(file_name):
+        print(f"[SKIP] Archivo '{file_name}' (de ayer) ya se encuentra procesado.")
+        return
+
+    # 5. Procesar el archivo encontrado
+    print(f"[SUCCESS] Archivo '{file_name}' (de ayer) encontrado y listo para procesar.")
+    
+    procesar_archivo(file_to_process, system)
 
 # MAIN PROCESOR
 def procesar_archivo(ruta: Path, system) -> dict:
@@ -337,7 +402,7 @@ def PXP(ruta):
         quoting=csv.QUOTE_NONE,
         header=None,
         dtype=str,
-        keep_default_na=False,
+        keep_default_na=True,
         names=[
             "time_info",
             "end_time",
@@ -353,11 +418,14 @@ def PXP(ruta):
     )
     df_raw = df_raw.drop(columns=['itemid','fbid','sceneuid','thumbhash'])
 
-    df_raw['start_time'] = df_raw['time_info'].apply(lambda x: x.split(": ", 1)[1])
+    df_raw['start_time'] = df_raw['time_info'].apply(extract_start_time)
     df_raw['start_time'] = pd.to_datetime(df_raw['start_time'], format="%d-%m-%Y %H:%M:%S.%f", errors='coerce').dt.floor("s")
     df_raw['end_time'] = pd.to_datetime(df_raw['end_time'], format="%d-%m-%Y %H:%M:%S.%f", errors='coerce').dt.floor("s")
+    df_raw = df_raw.dropna(subset=['start_time'])
     df_raw['duration'] = df_raw['end_time'] - df_raw['start_time']
-    df_raw['duration'] = df_raw['duration'].apply(lambda x: str(x).split()[-1])
+    df_raw['duration'] = df_raw['duration'].apply(lambda x: str(x).split()[-1] if pd.notna(x) else None)
+
+
     df_raw['metadata'] = df_raw.apply(lambda row: {
         "program_block": None if pd.isna(row['group']) or row['group'] is np.nan else row['group']}, axis=1)
 
@@ -508,3 +576,11 @@ def clean_start_time(time_str):
         return None
     match = re.search(r'(\d{2}:\d{2}:\d{2})', str(time_str))
     return match.group(1) if match else None
+
+def extract_start_time(time_info_str):
+    """Extrae el start_time de 'log_time: start_time' o devuelve None si falla."""
+    if isinstance(time_info_str, str) and ': ' in time_info_str:
+        # Si contiene el separador esperado, extrae la parte posterior
+        return time_info_str.split(": ", 1)[1]
+    # Si no es un string o no tiene el formato, devuelve None
+    return None

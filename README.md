@@ -1,4 +1,4 @@
-# TigoCrea: Sistema de Gestión de Programación y Reportería de TV
+# B-Planning: Sistema de Gestión de Programación y Reportería de TV
 
 Este repositorio aloja el código fuente de **TigoCrea**, la plataforma diseñada para centralizar la gestión de contenido de transmisión y generar auditorías precisas sobre la emisión de medios en canales de TV.
 
