@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<!-- CRÍTICO: Definimos el tamaño de página horizontal aquí -->
+<style>
+    @page {
+        size: letter landscape; /* Usa 'A4 landscape' si usas ese estándar */
+        margin: 1cm; /* Reducimos el margen general de la página para ganar espacio */
+    }
+</style>
+
+<title>{{ report_title }}</title>
+<style>
+  /* --- COLORES AZULES (NUEVA PALETA) --- */
+  :root {
+    --color-primary: #0b3d91; /* Azul Tigo Oscuro principal */
+    --color-secondary: #bfe9ff; /* Azul Tigo Claro para fondos/bordes */
+    --color-accent: #007bff; 
+    --color-text-dark: #12263f; 
+    --color-text-light: #6b7280; 
+    --color-background-light: #fbfdff; 
+    --color-border-light: #e6eef9; 
+  }
+
+  /* --- GLOBAL --- */
+  html, body {
+    font-family: 'Inter', Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+    color: var(--color-text-dark);
+    font-size: 14px;
+    -webkit-print-color-adjust: exact;
+    color-adjust: exact;
+  }
+
+  .page {
+    /* Quitamos el max-width para que ocupe todo el ancho horizontal disponible */
+    width: 100%;
+    margin: 0 auto; 
+    padding: 0; /* Ya usamos el margin de @page */
+    box-sizing: border-box;
+  }
+  
+  /* --- ESTRUCTURA DE ENCABEZADO (Usando display: table-cell compatible) --- */
+  .report-header { 
+    margin-bottom: 10px; 
+  }
+
+  .header-banner {
+    display: table;
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 10px; 
+  }
+
+  .header-cell {
+    display: table-cell;
+    vertical-align: middle;
+  }
+
+  .logo-cell {
+    width: 35%;
+    text-align: left;
+  }
+  .stats-cell {
+    width: 65%;
+    text-align: right; 
+  }
+
+  .logo {
+    max-width: 95%; 
+    height: auto;
+    border-radius: 8px; 
+    padding: 5px 10px; 
+  }
+  
+  /* --- CAJAS DE ESTADÍSTICAS: Usamos una Tabla Anidada para forzar la horizontalidad --- */
+  .stats-inner-table {
+    display: inline-table; 
+    border-collapse: collapse;
+    width: auto;
+  }
+
+  .stat-td {
+      padding: 0 0 0 12px; 
+      vertical-align: top;
+      /* Ajustamos el ancho para el formato horizontal */
+      width: 150px; 
+  }
+
+  .stats-inner-table tr td:first-child {
+      padding-left: 0;
+  }
+
+  .stat-box {
+      background: var(--color-primary); 
+      color: white;
+      text-align: center;
+      padding: 8px 15px; 
+      border-radius: 8px; 
+      line-height: 1.0;
+  }
+
+  .stat-label {
+      font-size: 10px;
+      font-weight: 500;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+      opacity: 0.8;
+  }
+
+  .stat-value {
+      font-size: 26px; 
+      font-weight: 700;
+  }
+  
+  /* --- TÍTULO Y METADATOS --- */
+  .report-title {
+    font-size: 22px; 
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--color-primary); 
+    margin-top: 5px;
+    margin-bottom: 10px; 
+    text-transform: uppercase;
+    border-bottom: 2px solid var(--color-primary);
+    padding-bottom: 5px;
+  }
+
+  .header-meta {
+    text-align: right;
+    font-size: 10px; 
+    color: var(--color-text-light); 
+    margin-top: -8px; 
+    margin-bottom: 10px; 
+  }
+
+  .text-right { text-align: right; }
+  
+  /* --- TABLA RESUMEN y TABLA DETALLE (Estilos compartidos) --- */
+  
+  .summary-table-wrap { 
+    margin-bottom: 0 !important;
+    overflow: hidden;
+  }
+
+  .table-wrap {
+    border: 1px solid var(--color-border-light);
+    border-radius: 8px; 
+    overflow: hidden;
+  }
+  
+  .report {
+      page-break-inside: auto;
+  }
+  .report tr {
+      page-break-inside: avoid; 
+      page-break-after: auto;
+  }
+
+
+  table.report, .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 10px; /* Reducimos la fuente base de la tabla principal */
+  }
+  
+  .summary-table thead th {
+    background: var(--color-primary); 
+    color: white; 
+    font-weight: 600;
+    padding: 6px 10px; 
+    text-align: left;
+    text-transform: uppercase;
+    border-bottom: 1px solid #082d70; 
+  }
+  
+  .report thead th {
+    background: var(--color-secondary); 
+    color: var(--color-text-dark); 
+    border-bottom: 2px solid var(--color-primary); 
+    padding: 8px 12px; 
+  }
+  
+  tbody td {
+    padding: 8px 12px; 
+    border-bottom: 1px solid var(--color-border-light);
+    vertical-align: top;
+    color: var(--color-text-dark);
+    /* Ajuste para que el texto largo no fuerce demasiado la celda */
+    word-break: break-all; 
+  }
+
+  /* CRÍTICO: Reducimos la fuente dentro del div que contiene el texto de la celda */
+  .word-break-all {
+      font-size: 9px; /* Fuente más pequeña para el contenido */
+  }
+
+  tbody tr:nth-child(even) td {
+    background: var(--color-background-light); 
+  }
+
+  .col-number {
+      text-align: right;
+      font-weight: 500;
+      width: 100px; 
+  }
+
+  /* Ajustamos el ancho del footer para el formato horizontal */
+  .footer {
+    margin-top: 10px; 
+    font-size: 10px;
+    color: var(--color-text-light);
+    display: table;
+    width: 100%;
+    padding-top: 5px; 
+    border-top: 1px solid var(--color-border-light);
+  }
+  .footer-cell {
+      display: table-cell;
+      width: 50%;
+  }
+  .footer-cell.right {
+      text-align: right;
+  }
+
+  /* Aseguramos que el Program Block no se corte si el contenido es largo */
+  .report td:nth-child(6) { /* Columna de Program Block (la sexta columna) */
+      max-width: 150px; /* Le damos un ancho máximo para que la tabla no sea infinita */
+      word-wrap: break-word;
+      white-space: normal;
+  }
+
+</style>
+</head>
+
+<body>
+  <div class="page">
+    <div class="report-header">
+      
+      <div class="header-banner">
+        
+        <div class="header-cell logo-cell">
+            <img class="logo" src="data:image/png;base64,{{ logo_data }}" alt="TIGO B-PLANNING Logo" />
+        </div>
+        
+        <div class="header-cell stats-cell"> 
+            <table class="stats-inner-table">
+                <tr>
+                    <td class="stat-td" style="padding-left: 0;">
+                        <div class="stat-box">
+                            <div class="stat-label">CONTRATADO</div>
+                            <div class="stat-value">{{ total_contratado }}</div> 
+                        </div>
+                    </td>
+                    
+                    <td class="stat-td">
+                        <div class="stat-box">
+                            <div class="stat-label">TRANSMITIDO</div>
+                            <div class="stat-value">{{ total_transmitido }}</div> 
+                        </div>
+                    </td>
+
+                    <td class="stat-td">
+                        <div class="stat-box">
+                            <div class="stat-label">DIFERENCIA</div>
+                            <div class="stat-value">{{ porcentaje_diferencia }} %</div> 
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+      </div>
+      
+      <div class="report-title">{{ report_title }}</div>
+
+      <div class="header-meta">
+        <div>Exportado: {{ export_date }} • Impactos: {{ logs|length }}</div>
+        <div>Generado por: {{ first_name }} {{ last_name }} • Sistema(s): {{ nombres }}</div>
+      </div>
+    </div>
+
+    <!-- TABLA RESUMEN -->
+    <div class="summary-table-wrap">
+        <table class="summary-table">
+            <thead>
+                <tr>
+                    <th style="width: 40%;">PROPERTY</th>
+                    <th style="width: 30%;" class="text-right">CONTRATADO</th>
+                    <th style="width: 30%;" class="text-right">TRANSMITIDO</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in summary_logs %}
+                <tr>
+                    <td>{{ loop.index }}. <span class="summary-row-item">{{ item.property }}</span></td>
+                    <td class="text-right">{{ item.contratado }}</td>
+                    <td class="text-right">{{ item.transmitido }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- TABLA DETALLE (DEBE INICIAR INMEDIATAMENTE DESPUÉS) -->
+    <div class="table-wrap">
+      <table class="report">
+        <thead>
+            <tr>
+                {% for header in headers %}
+                    <th {% if loop.index > 3 %}class="col-number"{% endif %}>{{ header }}</th>
+                {% endfor %}
+            </tr>
+            </thead>
+            <tbody>
+            {% for row in logs %}
+                <tr>
+                    {% for cell in row %}
+                        <td {% if loop.index > 3 %}class="col-number"{% endif %}>
+                            <div class="word-break-all">{{ cell }}</div>
+                        </td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+            </tbody>
+      </table>
+    </div>
+
+    <div class="footer">
+      <div class="footer-cell">PDF generado desde Tigo B-Planning</div>
+      <div class="footer-cell right">{{ export_date }}</div>
+    </div>
+  </div>
+</body>
+</html>
