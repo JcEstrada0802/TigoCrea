@@ -13,69 +13,17 @@ def is_file_processed(file_name: str) -> bool:
     """Verifica si un archivo ya tiene un registro en la base de datos."""
     return AsRunLogFile.objects.filter(file_name=file_name).exists()
 
-def process_yesterday_file(folder_path: str, system: str, trigger_file_path: str):
-    
-    # 1. Obtener la fecha de la última modificación del archivo que disparó el evento
-    try:
-        timestamp = os.path.getmtime(trigger_file_path)
-        trigger_date = datetime.fromtimestamp(timestamp)
-        print(f"[DEBUG] Fecha base del archivo: {trigger_date.strftime('%Y-%m-%d %H:%M:%S')}")
-        
-    except FileNotFoundError:
-        print(f"[ERROR] Archivo trigger no encontrado: {trigger_file_path}")
-        return
-
-    # 2. Calcular la fecha OBJETIVO (un día antes de la fecha del archivo trigger)
-    target_date = trigger_date - timedelta(days=1)
-    
-    # Nos interesa solo la parte de la fecha (AAAAMMDD) para la comparación
-    target_date_only = target_date.date()
-
-    print(f"[INFO] Buscando log modificado el: {target_date_only.strftime('%Y-%m-%d')} en la carpeta {system}.")
-
-    # 3. Iterar sobre todos los archivos en la carpeta y filtrar por fecha
-    path_obj = Path(folder_path)
-    # Solo buscamos en la carpeta en la que se disparó el trigger (Path.iterdir())
-    
-    file_to_process = None
-    
-    # Iteramos sobre todos los elementos en el directorio
-    for file in path_obj.iterdir():
-        if file.is_file():
-            
-            # Obtenemos la fecha de última modificación del archivo actual en el loop
-            try:
-                mod_timestamp = os.path.getmtime(file)
-                mod_date = datetime.fromtimestamp(mod_timestamp).date()
-            except OSError:
-                # Omitir archivos que no se pueden leer o están bloqueados
-                continue
-                
-            # Comparamos la fecha de modificación con la fecha objetivo (solo el día)
-            if mod_date == target_date_only:
-                file_to_process = file
-                print(f"[DEBUG] Coincidencia encontrada: {file.name}, modificado el {mod_date}")
-                break # Encontrado el archivo, salimos del loop
-    
-    if not file_to_process:
-        print(f"[WARN] No se encontró un archivo de log cuya fecha de modificación sea {target_date_only} en {system}.")
-        return
-
-    file_name = file_to_process.name
-
-    # 4. Verificar si el archivo ya fue procesado
-    if is_file_processed(file_name):
-        print(f"[SKIP] Archivo '{file_name}' (de ayer) ya se encuentra procesado.")
-        return
-
-    # 5. Procesar el archivo encontrado
-    print(f"[SUCCESS] Archivo '{file_name}' (de ayer) encontrado y listo para procesar.")
-    
-    procesar_archivo(file_to_process, system)
-
 # MAIN PROCESOR
 def procesar_archivo(ruta: Path, system) -> dict:
     ext = os.path.splitext(ruta)[1].lower()
+    file_name = os.path.basename(ruta)
+
+    print(system)
+
+    """if is_file_processed(file_name):
+        print(f"[SKIP] Archivo '{file_name}' (de ayer) ya se encuentra procesado.")
+        return"""
+    
 
     for attempt in range(3):
         try:
@@ -340,7 +288,6 @@ def PFV(ruta, sistema):
     date_proc = pd.Timestamp(datetime.now(tz=ZoneInfo("America/Guatemala"))).replace(microsecond=0).tz_localize(None)
     desc = "log " + sistema
     upgrade(df_final, file, sistema, desc, date_proc)
-    
 
 # PROCESS SQUID FILES
 def PSF(ruta, sistema):
@@ -444,7 +391,6 @@ def PXP(ruta):
     desc = "log Xpression"
     upgrade(df_final, file, "Xpression", desc, date)
 
-
 def PRF(ruta, sistema):
     file = os.path.basename(ruta)
     
@@ -526,7 +472,7 @@ def PUP(ruta):
 
 # PROCESS REGIONPLAYER
 def PRP(ruta):
-    pass
+    file = os.path.basename(ruta)
 
 # ---------- FUNCIONES PARA LIMPIAR DATOS -----------
 

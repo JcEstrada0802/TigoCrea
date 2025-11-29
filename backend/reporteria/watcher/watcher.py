@@ -6,7 +6,6 @@ from decouple import config
 from pathlib import Path
 import os
 import time
-from .processors import process_yesterday_file
 
 WATCH_FOLDERS = [
     Path(config('SERVER_PATH')+"/Air-manager"),
@@ -27,7 +26,7 @@ class MyHandler(FileSystemEventHandler):
         file_path = event.src_path
         folder_path = os.path.dirname(file_path)
         folder_name = os.path.basename(folder_path)
-        process_yesterday_file(folder_path, folder_name, file_path)
+        procesar_archivo(file_path, folder_name)
         time.sleep(1)
         # ext = os.path.splitext(file_path)[1].lower() Puede servir pa mas tarde xd
 
