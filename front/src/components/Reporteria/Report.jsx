@@ -56,8 +56,10 @@ const Report = ({ reporteId, onViewTable }) => {
 
     // ------------------------- FILTROS POR DEFAULT -------------------------
     const now = new Date();
-    const oneMonthAgo = new Date();
-    oneMonthAgo.setMonth(now.getMonth() - 1);
+    const WeekInMs = 7*24*60*60*1000;
+    const nowInMs = now.getTime();
+    const oneWeekAgoInMs = nowInMs - WeekInMs;
+    const oneWeekAgo = new Date(oneWeekAgoInMs);
     
     // --------------------------- ESTADOS REPORTE ---------------------------
     const [user, setUser] = useState({});
@@ -66,12 +68,9 @@ const Report = ({ reporteId, onViewTable }) => {
     const [activeTab, setActiveTab] = useState('filters');
     const [summary_logs, setSummary_logs] = useState([]);
     const [filters, setFilters] = useState({
-        start_time_min: formatDateForInput(oneMonthAgo),
+        start_time_min: formatDateForInput(oneWeekAgo),
         start_time_max: formatDateForInput(now), 
-        title: '',
-        clip_name: '',
-        duration: '',
-        event_type: ''
+        title: ''
     });
     
     // ------------------------ ESTADOS MAIN COMPONENT -----------------------
@@ -230,7 +229,7 @@ const Report = ({ reporteId, onViewTable }) => {
                     { 
                         filters,
                         logs: logsForExport,
-                        report_title: reportInfo.titulo,
+                        report_title: filename,
                         export_date: new Date().toLocaleString(),
                         first_name: user.first_name,
                         last_name: user.last_name,
@@ -431,16 +430,8 @@ const Report = ({ reporteId, onViewTable }) => {
                                     <input type="datetime-local" name="start_time_max" id="start_time_max" value={filters.start_time_max} onChange={handleFilterChange} className="w-full p-2 border border-slate-300 rounded-md text-sm" placeholder="dd/mm/yyyy, HH:MM:SS" />
                                 </div>
                                 <div>
-                                    <label htmlFor="title" className="block text-sm font-medium text-slate-600 mb-1">Title</label>
-                                    <input type="text" name="title" id="title" value={filters.title} onChange={handleFilterChange} className="w-full p-2 border border-slate-300 rounded-md text-sm" placeholder="Buscar por título..." />
-                                </div>
-                                <div>
-                                    <label htmlFor="clip_name" className="block text-sm font-medium text-slate-600 mb-1">Clip Name</label>
-                                    <input type="text" name="clip_name" id="clip_name" value={filters.clip_name} onChange={handleFilterChange} className="w-full p-2 border border-slate-300 rounded-md text-sm" placeholder="Buscar por clip name..." />
-                                </div>
-                                 <div>
-                                    <label htmlFor="event_type" className="block text-sm font-medium text-slate-600 mb-1">Tipo</label>
-                                    <input type="text" name="event_type" id="event_type" value={filters.event_type} onChange={handleFilterChange} className="w-full p-2 border border-slate-300 rounded-md text-sm" placeholder="Buscar por tipo..." />
+                                    <label htmlFor="title" className="block text-sm font-medium text-slate-600 mb-1">Cliente</label>
+                                    <input type="text" name="title" id="title" value={filters.title} onChange={handleFilterChange} className="w-full p-2 border border-slate-300 rounded-md text-sm" placeholder="Buscar por Cliente..." />
                                 </div>
                             </div>
                         </div>

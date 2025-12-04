@@ -10,7 +10,6 @@ import time, os
 import re
 
 def is_file_processed(file_name: str) -> bool:
-    """Verifica si un archivo ya tiene un registro en la base de datos."""
     return AsRunLogFile.objects.filter(file_name=file_name).exists()
 
 # MAIN PROCESOR
@@ -18,11 +17,9 @@ def procesar_archivo(ruta: Path, system) -> dict:
     ext = os.path.splitext(ruta)[1].lower()
     file_name = os.path.basename(ruta)
 
-    print(system)
-
-    """if is_file_processed(file_name):
+    if is_file_processed(file_name):
         print(f"[SKIP] Archivo '{file_name}' (de ayer) ya se encuentra procesado.")
-        return"""
+        return
     
 
     for attempt in range(3):
@@ -197,7 +194,6 @@ def PDLG(ruta, sistema):
     df_raw["ObjectData"] = df_raw["ObjectData"].astype(str) \
     .str.replace("\\", "/", regex=False) \
     .apply(os.path.basename)
-    print(df_raw['ObjectData'])
 
     df_raw['metadata'] = df_raw.apply(lambda row: {
         "ObjectDescription": None if pd.isna(row['ObjectDescription']) or row['ObjectDescription'] is np.nan else row['ObjectDescription'],
@@ -280,7 +276,7 @@ def PFV(ruta, sistema):
         'event_type': df_raw['event_type'].str.replace('_', ' ').str.replace('-', ' '),
         'metadata': df_raw.apply(lambda row: {
             "notes": None if pd.isna(row['notes']) or row['notes'] is np.nan else row['notes'],
-            "metadata_1": None if pd.isna(row['metadata_1']) or row['metadata_1'] is np.nan else row['metadata_1'],
+            "program_block": None if pd.isna(row['metadata_1']) or row['metadata_1'] is np.nan else row['metadata_1'],
             "status": None if pd.isna(row['status']) or row['status'] is np.nan else row['status']
         }, axis=1)
     })

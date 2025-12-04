@@ -190,7 +190,12 @@
     vertical-align: top;
     color: var(--color-text-dark);
     /* Ajuste para que el texto largo no fuerce demasiado la celda */
-    word-break: break-all; 
+    word-break: break-word;
+    word-break: normal; 
+  }
+
+  .word-break-all{
+    font-size: 9px;
   }
 
   /* CRÍTICO: Reducimos la fuente dentro del div que contiene el texto de la celda */

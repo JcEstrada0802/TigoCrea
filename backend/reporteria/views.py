@@ -6,6 +6,7 @@ from .models import BroadcastSystem, Reportes, AsRunLogFile, LogEntry
 from .permissions import IsSuperUser
 from rest_framework import status
 from django.shortcuts import get_object_or_404
+from django.db.models import Q
 
 import os
 import base64
@@ -88,8 +89,8 @@ def logout(request):
     return Response({"message": "Sesión cerrada"}, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
-@permission_classes([AllowAny]) # Cambia esto por tu permiso real, ej: [IsAuthenticated]
-def getReportDetail(request, report_id):
+@permission_classes([IsAuthenticated]) 
+def getReport(request, report_id):
     try:
         reporte = get_object_or_404(Reportes, id=report_id)
         
@@ -98,25 +99,17 @@ def getReportDetail(request, report_id):
         system_ids = reporte.sistemas
         log_files = AsRunLogFile.objects.filter(system_id__in=system_ids)
         log_file_ids = log_files.values_list('id', flat=True)
-        logs_queryset = LogEntry.objects.filter(log_file_id__in=log_file_ids)
+        logs_queryset = LogEntry.objects.filter(log_file_id__in=log_file_ids).exclude(Q(title='empty') | Q(title=''))
 
         if filters.get('start_time_min'):
             logs_queryset = logs_queryset.filter(start_time__gte=filters['start_time_min'])
         if filters.get('start_time_max'):
             logs_queryset = logs_queryset.filter(start_time__lte=filters['start_time_max'])
         if filters.get('title'):
-            logs_queryset = logs_queryset.filter(title__icontains=filters['title'])
-        if filters.get('clip_name'):
-            logs_queryset = logs_queryset.filter(clip_name__icontains=filters['clip_name'])
-        if filters.get('duration'):
-            logs_queryset = logs_queryset.filter(duration__icontains=filters['duration'])
-        if filters.get('event_type'):
-            logs_queryset = logs_queryset.filter(event_type__icontains=filters['event_type'])
+            logs_queryset = logs_queryset.filter(Q(title__icontains=filters['title']) | Q(clip_name__icontains=filters['title']))
 
-        # Ordenamos para una paginación consistente
         logs_queryset = logs_queryset.order_by('-start_time').select_related('log_file__system')
 
-        # 6. Serializamos solo los logs de la página actual
         serialized_logs = [{
             'id': log.id, 'start_time': log.start_time, 'end_time': log.end_time,
             'duration': str(log.duration) if log.duration is not None else "", 'title': log.title, 'contents': log.contents,
@@ -124,7 +117,6 @@ def getReportDetail(request, report_id):
             'sistema': log.log_file.system.name
         } for log in logs_queryset]
         
-        # 7. Construimos la respuesta final
         response_data = {
             'report_info': {
                 'id': reporte.id,
@@ -133,6 +125,29 @@ def getReportDetail(request, report_id):
                 'sistemas': reporte.sistemas,
             },
             'logs': serialized_logs,
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
+
+    except Reportes.DoesNotExist:
+        return Response({"error": "Reporte no encontrado."}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        return Response({"error": "Ocurrió un error al procesar la solicitud."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def getReportDetail(request, report_id):
+    try:
+        reporte = get_object_or_404(Reportes, id=report_id)
+        response_data = {
+            'report_info': {
+                'id': reporte.id,
+                'titulo': reporte.titulo,
+                'descripcion': reporte.descripcion,
+                'sistemas': reporte.sistemas,
+            }
         }
         return Response(response_data, status=status.HTTP_200_OK)
 
