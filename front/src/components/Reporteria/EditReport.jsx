@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-// ¡OJO! Importé FiEdit3 para el título
 import { FiFileText, FiEdit, FiShare2, FiSave, FiX, FiLoader, FiAlertTriangle, FiEdit3 } from 'react-icons/fi';
 import Alert from '../utils/Alert';
 
@@ -32,7 +31,7 @@ function EditReport({ reporteId, onSaving }) {
 
             try {
                 const [reportResponse, sistemasResponse] = await Promise.all([
-                    axios.post(`${apiUrl}/reporteria/getReport/${reporteId}/`, {}, {
+                    axios.post(`${apiUrl}/reporteria/getReportDetail/${reporteId}/`, {}, {
                         headers: { Authorization: `Token ${token}` }
                     }),
                     axios.get(`${apiUrl}/reporteria/getSystems/`, {
