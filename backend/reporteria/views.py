@@ -8,14 +8,23 @@ from rest_framework import status
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
 
+# Prueba con Celery
+from .tasks import renderPDF
+from celery.result import AsyncResult
+
 import os
 import base64
 from django.conf import settings
 from django.http import HttpResponse
-from django.template.loader import render_to_string
-from io import BytesIO
-from weasyprint import HTML
 
+from io import BytesIO
+
+
+#----------------------- CARGAR BASE64 IMG PARA PDF -----------------------
+logo_path = os.path.join(settings.BASE_DIR, 'imgs', 'logo.png')
+with open(logo_path, "rb") as image_file:
+    encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+#--------------------------------------------------------------------------
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -228,9 +237,7 @@ def exportReportPDF(request):
         default_headers = ['Inicio', 'Título', 'Clip Name', 'Duración', 'Tipo', 'Program Block', 'Sistema']
         headers = request.data.get('headers', default_headers)
 
-        logo_path = os.path.join(settings.BASE_DIR, 'imgs', 'logo.png')
-        with open(logo_path, "rb") as image_file:
-            encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+        
         
         nombres = ','.join(sistemas)
 
@@ -272,20 +279,15 @@ def exportReportPDF(request):
             'porcentaje_diferencia': porcentaje_diferencia,
             'summary_logs': summary_logs,
         }
+        task = renderPDF.delay(context)
 
-        # 1. Renderiza la plantilla HTML con el contexto
-        html_string = render_to_string('report_pdf.html', context)
-
-        # 2. Crea el objeto HTML con WeasyPrint
-        html_content = HTML(string=html_string)
-        
-        # 3. Genera el PDF y lo guarda en memoria
-        pdf_file = html_content.write_pdf()
-
-        # 4. Retorna el PDF como HttpResponse
-        response = HttpResponse(pdf_file, content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="{report_title}.pdf"'
-        return response
+        return Response(
+            {
+                "message" : "Celery Esta Exportando el PDF",
+                "task_id" : task.id
+            },
+            status=status.HTTP_202_ACCEPTED
+        )
 
     except Exception as e:
         import traceback
@@ -340,3 +342,51 @@ def updateReport(request, report_id):
     reporte.save()
 
     return Response({'message': 'Reporte actualizado exitosamente'}, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def getReportStatus(request):
+    try:
+        task_id = request.query_params.get('taskId')
+        task = AsyncResult(task_id)
+        current_status = task.state
+        response_data = {
+            'task_id': task_id,
+            'status': current_status,
+            'message': 'Reporte en progreso'
+        }
+
+        if current_status == 'SUCCESS':
+            response_data['message'] = 'Reporte generado con éxito.'
+        elif current_status == 'FAILURE':
+            response_data['message'] = f'Error en la generación del reporte: {task.info}'
+        elif current_status in ('PENDING', 'STARTED', 'RETRY'):
+            pass
+        else:
+            response_data['message'] = f'Estado de tarea desconocido: {current_status}'
+
+        return Response(response_data, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response(
+            {'error': str(e), 'message': 'No se pudo consultar el estado de la tarea.'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def getReportPDF(request):
+    try:
+        title = request.query_params.get('titulo')
+        task_id = request.query_params.get('taskId')
+        task = AsyncResult(task_id)
+        pdf_file = task.result
+        response = HttpResponse(pdf_file, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{title}.pdf"'
+        return response
+
+    except Exception as e:
+        return Response(
+            {'error': str(e), 'message': 'No se pudo consultar el estado de la tarea.'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

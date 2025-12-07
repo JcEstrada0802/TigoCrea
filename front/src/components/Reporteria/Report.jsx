@@ -5,6 +5,8 @@ import { FaPlay, FaRedo, FaTimes, FaSpinner, FaChevronLeft, FaChevronRight } fro
 import { TbDatabaseOff } from 'react-icons/tb';
 import Alert from '../utils/Alert';
 import ColumnsList from './ColumnsList';
+import pollReportStatus from '../utils/PollReportStatus';
+
 
 
 // ------------------------------- FUNCION PA FORMATEAR DATOS -------------------------------
@@ -240,11 +242,15 @@ const Report = ({ reporteId, onViewTable }) => {
                         headers: {
                             Authorization: `Token ${token}`,
                             'Content-Type': 'application/json'
-                        },
-                        responseType: 'blob'
+                        }
                     }
                 );
 
+                const task_id = response.data.task_id;
+                pollReportStatus(task_id, token, filename);
+
+                // Hacer polling
+                /*
                 const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
                 const link = document.createElement('a');
                 link.href = url;
@@ -252,7 +258,7 @@ const Report = ({ reporteId, onViewTable }) => {
                 document.body.appendChild(link);
                 link.click();
                 link.remove();
-                window.URL.revokeObjectURL(url);
+                window.URL.revokeObjectURL(url);*/
             
             // --- EXPORTACIÓN A CSV ---
             } else if (format === 'csv') {

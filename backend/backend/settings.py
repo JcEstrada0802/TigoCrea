@@ -15,7 +15,8 @@ FRONTURL = config('FRONTURL', cast=str)
 FRONTHOST = config('FRONTHOST', cast=str)
 
 ALLOWED_HOSTS = [
-    FRONTHOST
+    FRONTHOST,
+    '127.0.0.1'
 ]
 
 # -------------------------------
@@ -144,3 +145,9 @@ USE_TZ = False
 STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# -------------------------------
+# CELERY
+# -------------------------------
+CELERY_BROKER_URL = "redis://127.0.0.1:6379/0"
+CELERY_RESULT_BACKEND = "redis://127.0.0.1:6379/0"

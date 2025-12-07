@@ -1,7 +1,7 @@
 from . import views 
 from django.urls import path 
 from rest_framework.authtoken.views import obtain_auth_token 
-from .views import getSystems, crearReporte, getReports, logout, getReport, getReportDetail, exportReportPDF, getUserContext, updateReport
+from .views import getSystems, crearReporte, getReports, logout, getReport, getReportDetail, exportReportPDF, getUserContext, updateReport, getReportStatus, getReportPDF
 
 
 urlpatterns = [ path('api-token-auth/', obtain_auth_token, name='api_token_auth'), 
@@ -13,4 +13,6 @@ urlpatterns = [ path('api-token-auth/', obtain_auth_token, name='api_token_auth'
                 path('getReport/<int:report_id>/', getReport, name='getReportDetail'), 
                 path('getReportDetail/<int:report_id>/', getReportDetail, name='getReportDetail'), 
                 path('exportReport/', exportReportPDF, name='export-report'),
-                path('updateReport/<int:report_id>/', updateReport, name='update-report')]
+                path('updateReport/<int:report_id>/', updateReport, name='update-report'),
+                path('getReportStatus/', getReportStatus, name="getReportStatus"),
+                path('getReportPDF/', getReportPDF, name="getReportPDF")]
