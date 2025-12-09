@@ -177,6 +177,7 @@ def exportReportPDF(request):
         first_name = request.data.get('first_name', 'N/A')
         last_name = request.data.get('last_name', 'N/A')
         sistemas = request.data.get('sistemas', 'N/A')
+        
 
         total_contratado = request.data.get('total_contratado', '0')
         total_transmitido = request.data.get('total_transmitido', len(logs))
@@ -211,7 +212,7 @@ def exportReportPDF(request):
                                                         "transmitido": 0
                                                         },
                                                         {
-                                                        "property": "PROPIEDADES",
+                                                        "property": "PROPIEDAD",
                                                         "contratado": 0,
                                                         "transmitido": 0
                                                         },
@@ -219,14 +220,21 @@ def exportReportPDF(request):
                                                         "property": "REALIDAD AUMENTADA",
                                                         "contratado": 0,
                                                         "transmitido": 0
+                                                        },
+                                                        {
+                                                        "property": "SEGMENTOS",
+                                                        "contratado": 0,
+                                                        "transmitido": 0
                                                         },])
         
-        keys_map = {"SPOT": 0,"MEN+CINT": 1,"CINT": 2,"QUINTOPEDIA": 3,"GRAF": 4, "CROPL":5, "PROP":6, "RA":7}
+        keys_map = {"SPOT": 0,"MEN+CINT": 1,"CINT": 2,"QUINTOPEDIA": 3,"GRAF": 4, "CROPL":5, "PROP TM":6, "RA":7, "CORT TM": 8}
 
         for log in logs:
+            log['start_time'] = log['start_time'].split(', ')[0]
             title = log.get('title', '').upper()
+            clipname = log.get('clip_name',  '').upper()
             for key, index in keys_map.items():
-                if key in title:
+                if ((key in title) or (key in clipname)):
                     summary_logs[index]['transmitido'] += 1
                     break
 
