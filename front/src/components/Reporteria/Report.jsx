@@ -247,19 +247,14 @@ const Report = ({ reporteId, onViewTable }) => {
                 );
 
                 const task_id = response.data.task_id;
+                
+                setMensaje("PDF exportando, se descagara cuando este listo.")
+                setTipo('info')
+                setShowAlert(true)
+                setTimeout(() => (setShowAlert(false),2500))
+                
                 pollReportStatus(task_id, token, filename);
-
-                // Hacer polling
-                /*
-                const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
-                const link = document.createElement('a');
-                link.href = url;
-                link.setAttribute('download', `${filename}.pdf`);
-                document.body.appendChild(link);
-                link.click();
-                link.remove();
-                window.URL.revokeObjectURL(url);*/
-            
+                
             // --- EXPORTACIÓN A CSV ---
             } else if (format === 'csv') {
                 const summaryRow = `"Total impactos: ${logs.length}"`;
@@ -289,7 +284,6 @@ const Report = ({ reporteId, onViewTable }) => {
                 
                 const csvContent = [
                     summaryRow,
-                    '',
                     csvHeaders.join(','), 
                     ...rows
                 ].join('\n');

@@ -1,0 +1,32 @@
+# Dependencias
+node_modules
+.npm
+npm-debug.log
+
+# Variables de entorno (Sensible)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Build output (si ya tienes una carpeta dist local)
+dist
+build
+
+# Configuración de tests y linting (no necesarios para correr la app en prod)
+.eslintcache
+eslint.config.js
+README.md
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db

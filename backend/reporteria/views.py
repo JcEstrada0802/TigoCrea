@@ -7,6 +7,7 @@ from .permissions import IsSuperUser
 from rest_framework import status
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
+from .utils.report_export import build_report_data
 
 # Prueba con Celery
 from .tasks import renderPDF
@@ -179,101 +180,20 @@ def exportReportPDF(request):
         sistemas = request.data.get('sistemas', 'N/A')
         
 
-        total_contratado = request.data.get('total_contratado', '0')
         total_transmitido = request.data.get('total_transmitido', len(logs))
-        porcentaje_diferencia = request.data.get('porcentaje_diferencia', '0')
-        summary_logs = request.data.get('summary_logs',[{"property": "SPOT",
-                                                         "contratado": 0,
-                                                         "transmitido": 0
-                                                        },
-                                                        {
-                                                        "property": "MEN+CINT",
-                                                        "contratado": 0,
-                                                        "transmitido": 0
-                                                        },
-                                                        {
-                                                        "property": "CINTILLO",
-                                                        "contratado": 0,
-                                                        "transmitido": 0
-                                                        },
-                                                        {
-                                                        "property": "QUINTOPEDIA",
-                                                        "contratado": 0,
-                                                        "transmitido": 0
-                                                        },
-                                                        {
-                                                        "property": "GRÁFICO",
-                                                        "contratado": 0,
-                                                        "transmitido": 0
-                                                        },
-                                                        {
-                                                        "property": "CROPL",
-                                                        "contratado": 0,
-                                                        "transmitido": 0
-                                                        },
-                                                        {
-                                                        "property": "PROPIEDAD",
-                                                        "contratado": 0,
-                                                        "transmitido": 0
-                                                        },
-                                                        {
-                                                        "property": "REALIDAD AUMENTADA",
-                                                        "contratado": 0,
-                                                        "transmitido": 0
-                                                        },
-                                                        {
-                                                        "property": "SEGMENTOS",
-                                                        "contratado": 0,
-                                                        "transmitido": 0
-                                                        },])
-        
-        keys_map = {"SPOT": 0,"MEN+CINT": 1,"CINT": 2,"QUINTOPEDIA": 3,"GRAF": 4, "CROPL":5, "PROP TM":6, "RA":7, "CORT TM": 8}
-
-        for log in logs:
-            log['start_time'] = log['start_time'].split(', ')[0]
-            title = log.get('title', '').upper()
-            clipname = log.get('clip_name',  '').upper()
-            for key, index in keys_map.items():
-                if ((key in title) or (key in clipname)):
-                    summary_logs[index]['transmitido'] += 1
-                    break
-
-        for i in range(len(summary_logs) - 1, -1, -1):
-            if summary_logs[i]['transmitido'] == 0 and summary_logs[i]['contratado'] == 0:
-                del summary_logs[i]
+        total_contratado = request.data.get('total_contratado', '0')                #PENDIENTE DE AGREGAR AL PDF
+        porcentaje_diferencia = request.data.get('porcentaje_diferencia', '0')      #PENDIENTE DE AGREGAR AL PDF
 
         default_headers = ['Inicio', 'Título', 'Clip Name', 'Duración', 'Tipo', 'Program Block', 'Sistema']
         headers = request.data.get('headers', default_headers)
-
-        
-        
         nombres = ','.join(sistemas)
 
-        column_key_map = {
-            'Inicio': 'start_time',
-            'Título': 'title',
-            'Clip Name': 'clip_name',
-            'Duración': 'duration',
-            'Tipo': 'event_type',
-            'Sistema': 'sistema',
-            'Program Block': lambda log: log.get('metadata', {}).get('program_block', '')
-        }
-        
-        ordered_logs_data = []
-        for log in logs:
-            row = []
-            for header in headers:
-                key_or_func = column_key_map.get(header)
-                if callable(key_or_func): 
-                    row.append(key_or_func(log))
-                elif key_or_func: 
-                    row.append(log.get(key_or_func, ''))
-                else: 
-                    row.append('') 
-            ordered_logs_data.append(row)
+        ordered_logs, summary_logs, nombres = build_report_data(
+            logs, headers, sistemas
+        )
 
         context = {
-            'logs': ordered_logs_data, 
+            'logs': ordered_logs, 
             'headers': headers, 
             'report_title': report_title,
             'export_date': export_date,

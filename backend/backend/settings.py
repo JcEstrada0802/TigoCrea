@@ -13,6 +13,8 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-default-key')
 DEBUG = config('DEBUG', cast=bool, default=True)
 FRONTURL = config('FRONTURL', cast=str)
 FRONTHOST = config('FRONTHOST', cast=str)
+CELERYBURL = config('CELERY_BROKER_URL', cast=str)
+CELERYRB = config('CELERY_RESULT_BACKEND', cast=str)
 
 ALLOWED_HOSTS = [
     FRONTHOST,
@@ -108,8 +110,6 @@ REST_FRAMEWORK = {
 # CORS
 # -------------------------------
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
     FRONTURL,
 ]
 
@@ -149,5 +149,5 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # -------------------------------
 # CELERY
 # -------------------------------
-CELERY_BROKER_URL = "redis://127.0.0.1:6379/0"
-CELERY_RESULT_BACKEND = "redis://127.0.0.1:6379/0"
+CELERY_BROKER_URL = CELERYBURL
+CELERY_RESULT_BACKEND = CELERYRB

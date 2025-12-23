@@ -8,8 +8,10 @@ class ApiConfig(AppConfig):
     name = 'reporteria'
 
     def ready(self):
-        if os.environ.get("RUN_MAIN") == "true":  # Evita que corra en cada reload de dev
-            from .watcher import watcher
-            threading.Thread(target=watcher.watcher, daemon=True).start()
+        if os.environ.get("RUN_MAIN") != "true" and os.environ.get("DJANGO_RUNSERVER") == "true":  # Evita que corra en cada reload de dev
+            return
+        
+        from .watcher import watcher
+        threading.Thread(target=watcher.watcher, daemon=True).start()
 
     

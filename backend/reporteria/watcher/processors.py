@@ -14,6 +14,7 @@ def is_file_processed(file_name: str) -> bool:
 
 # MAIN PROCESOR
 def procesar_archivo(ruta: Path, system) -> dict:
+    time.sleep(5)
     ext = os.path.splitext(ruta)[1].lower()
     file_name = os.path.basename(ruta)
 
