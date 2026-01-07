@@ -14,13 +14,22 @@ import re
 def procesar_archivo(ruta: Path, system_name) -> dict:
     time.sleep(5)  # Delay para asegurar que Windows terminó de escribir
     file_name = os.path.basename(ruta)
+    folder_to_system = {
+        "Air-manager": "VSN-AirManager",
+        "Dlg-ts+": "DLG TS+",
+        "Dlg-vix": "DLG vix",
+        "Igson-cue": "Igson-cue",
+        "Marsis-vix": "Marsis-vix",
+        "ProduccionTS+": "MediaPlayTS+",
+        "SquidPlus": "Squid TS+",
+        "SquidPlusLat": "Squid Latino",
+        "Xpression": "Xpression"
+    }
+    real_system_name = folder_to_system.get(system_name)
 
     try:
         with transaction.atomic():
-            system_obj, _ = BroadcastSystem.objects.get_or_create(
-                name=system_name,
-                defaults={'description': f"Sistema detectado en carpeta {system_name}"}
-            )
+            system_obj = BroadcastSystem.objects.get(name=real_system_name)
 
             log_file_obj, created = AsRunLogFile.objects.get_or_create(
                 file_name=file_name,
