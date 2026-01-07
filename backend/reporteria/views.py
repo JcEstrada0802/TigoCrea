@@ -109,7 +109,7 @@ def getReport(request, report_id):
         system_ids = reporte.sistemas
         log_files = AsRunLogFile.objects.filter(system_id__in=system_ids)
         log_file_ids = log_files.values_list('id', flat=True)
-        logs_queryset = LogEntry.objects.filter(log_file_id__in=log_file_ids).exclude(Q(title='empty') | Q(title=''))
+        logs_queryset = LogEntry.objects.filter(log_file_id__in=log_file_ids).exclude(Q(title='empty') | Q(title='')).distinct()
 
         if filters.get('start_time_min'):
             logs_queryset = logs_queryset.filter(start_time__gte=filters['start_time_min'])
