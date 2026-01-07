@@ -1,5 +1,6 @@
 from datetime import timedelta, datetime
-from reporteria.models import AsRunLogFile
+from reporteria.models import AsRunLogFile, BroadcastSystem
+from django.db import transaction, IntegrityError
 from zoneinfo import ZoneInfo
 from .upgrader import upgrade
 from pathlib import Path
@@ -9,55 +10,50 @@ import csv
 import time, os
 import re
 
-def is_file_processed(file_name: str) -> bool:
-    return AsRunLogFile.objects.filter(file_name=file_name).exists()
-
 # MAIN PROCESOR
-def procesar_archivo(ruta: Path, system) -> dict:
-    time.sleep(5)
-    ext = os.path.splitext(ruta)[1].lower()
+def procesar_archivo(ruta: Path, system_name) -> dict:
+    time.sleep(5)  # Delay para asegurar que Windows terminó de escribir
     file_name = os.path.basename(ruta)
 
-    if is_file_processed(file_name):
-        print(f"[SKIP] Archivo '{file_name}' (de ayer) ya se encuentra procesado.")
+    try:
+        with transaction.atomic():
+            system_obj, _ = BroadcastSystem.objects.get_or_create(
+                name=system_name,
+                defaults={'description': f"Sistema detectado en carpeta {system_name}"}
+            )
+
+            log_file_obj, created = AsRunLogFile.objects.get_or_create(
+                file_name=file_name,
+                system=system_obj, # <--- ¡Esto es lo que faltaba!
+                defaults={'upload_date': datetime.now(tz=ZoneInfo("America/Guatemala"))}
+            )
+    except Exception:
+            # Si otro worker lo creó justo en el microsegundo intermedio
+            created = False
+
+    if not created:
+        print(f"[SKIP] El archivo '{file_name}' ya está en la DB o procesándose.")
         return
     
+    print(f"PROCESANDO: {file_name}...")
 
-    for attempt in range(3):
-        try:
-            match system:
-                case "Air-manager":             # LISTO
-                    PAM(ruta)
-                case "Dlg-ts+":                 # LISTO
-                    PDLG(ruta, "DLG TS+")       
-                case "Dlg-vix":                 # LISTO
-                    PDLG(ruta, "DLG vix")     
-                case "Igson-cue":               # LISTO
-                    PCI(ruta)  
-                case "Marsis-vix":              # LISTO
-                    PFV(ruta, 'Marsis-vix')
-                case "ProduccionTS+":           # LISTO
-                    PRF(ruta, "MediaPlayTS+")
-                case "Region+player":           # EN ESPERA DE ASRUNLOG
-                    PRP(ruta)
-                case "SquidPlus":               # LISTO
-                    PSF(ruta, "Squid TS+")      
-                case "SquidPlusLat":            # LISTO
-                    PSF(ruta, "Squid Latino")   
-                case "Xpression":               # LISTO
-                    PXP(ruta)                   
-                case "Youplay":                 # EN ESPERA DE ASRUNLOG
-                    PUP(ruta)
-            break  # si llega aquí, ya salió bien y rompemos el loop
-        except UnicodeDecodeError as e:
-            print(f"[WARN] Error de encoding en {ruta}, intento {attempt+1}/3")
-            time.sleep(1)  # esperamos antes de reintentar
-        except Exception as e:
-            print(f"[ERROR] Falló procesar {ruta}: {e}")
-            break
+    try:
+        match system_name:
+            case "Air-manager": PAM(ruta, log_file_obj)
+            case "Dlg-ts+": PDLG(ruta, "DLG TS+", log_file_obj)
+            case "Dlg-vix": PDLG(ruta, "DLG vix", log_file_obj)
+            case "Igson-cue": PCI(ruta, log_file_obj)
+            case "Marsis-vix": PFV(ruta, 'Marsis-vix', log_file_obj)
+            case "ProduccionTS+": PRF(ruta, "MediaPlayTS+", log_file_obj)
+            case "SquidPlus": PSF(ruta, "Squid TS+", log_file_obj)
+            case "SquidPlusLat": PSF(ruta, "Squid Latino", log_file_obj)
+            case "Xpression": PXP(ruta, log_file_obj)
+    except Exception as e:
+        print(f"[ERROR] Falló procesar {ruta}: {e}")
+        log_file_obj.delete()
 
 # PROCESS AIR MANAGER FILES
-def PAM(ruta):
+def PAM(ruta, log_file_obj):
     file = os.path.basename(ruta)
     df_raw = pd.read_csv(
         ruta,
@@ -109,12 +105,11 @@ def PAM(ruta):
         'event_type': df_raw['event_type'].str.replace('_', ' ').str.replace('-', ' '),
         'metadata': df_raw['metadata']
     })
-    date = pd.Timestamp(datetime.now(tz=ZoneInfo("America/Guatemala"))).replace(microsecond=0).tz_localize(None)
     desc = "log de VSN-AirManager"
-    upgrade(df_final, file, "VSN-AirManager", desc, date)  
+    upgrade(df_final, log_file_obj, "VSN-AirManager", desc)  
 
 # PROCESS IGSON-CUE FILES 
-def PCI(ruta):
+def PCI(ruta, log_file_obj):
     file = os.path.basename(ruta)
 
     for i in range(len(file)):
@@ -169,10 +164,10 @@ def PCI(ruta):
     date = pd.Timestamp(datetime.now(tz=ZoneInfo("America/Guatemala"))).replace(microsecond=0).tz_localize(None)
     desc = "log Igson-cue"
 
-    upgrade(df_final, file, "Igson-cue", desc, date) 
+    upgrade(df_final, log_file_obj, "Igson-cue", desc) 
 
 # PROCESS DLG TS+/VIX
-def PDLG(ruta, sistema):
+def PDLG(ruta, sistema, log_file_obj):
     file = os.path.basename(ruta)
     df_raw = pd.read_csv(
         ruta, 
@@ -213,10 +208,10 @@ def PDLG(ruta, sistema):
 
     date = pd.Timestamp(datetime.now(tz=ZoneInfo("America/Guatemala"))).replace(microsecond=0).tz_localize(None)
     desc = "log " + sistema
-    upgrade(df_final, file, sistema, desc, date) 
+    upgrade(df_final, log_file_obj, sistema, desc) 
 
 # PROCESS FILES FOR VIX
-def PFV(ruta, sistema):
+def PFV(ruta, sistema, log_file_obj):
     file = os.path.basename(ruta)
     fecha_str = file.rsplit('.', 1)[0]
     date_match = re.search(r'(\d{8})', fecha_str)
@@ -231,8 +226,6 @@ def PFV(ruta, sistema):
         except ValueError:
             print(f"Error: La fecha '{base_date_str}' no es un formato AAAAMMDD válido. Usando la fecha actual.")
             base_date = datetime.now().date()
-
-    print(f"Usando fecha base: {base_date}")
 
     df_raw = pd.read_csv(ruta, skiprows=1, header=None, names=[
         "log_time", "id", "start_time_raw", "title", "raw_duration",
@@ -284,10 +277,10 @@ def PFV(ruta, sistema):
     
     date_proc = pd.Timestamp(datetime.now(tz=ZoneInfo("America/Guatemala"))).replace(microsecond=0).tz_localize(None)
     desc = "log " + sistema
-    upgrade(df_final, file, sistema, desc, date_proc)
+    upgrade(df_final, log_file_obj, sistema, desc)
 
 # PROCESS SQUID FILES
-def PSF(ruta, sistema):
+def PSF(ruta, sistema, log_file_obj):
     file = os.path.basename(ruta)
 
     col_widths = [18, 30, 30, 3, 31]  # ejemplo: ajustá según tu archivo
@@ -326,10 +319,10 @@ def PSF(ruta, sistema):
 
     date = pd.Timestamp(datetime.now(tz=ZoneInfo("America/Guatemala"))).replace(microsecond=0).tz_localize(None)
     desc = "log " + sistema
-    upgrade(df_final, file, sistema, desc, date)
+    upgrade(df_final, log_file_obj, sistema, desc)
 
 # PROCESS XPRESSION FILES
-def PXP(ruta):
+def PXP(ruta, log_file_obj):
     file = os.path.basename(ruta)
 
     pd.set_option('display.max_rows', None)
@@ -386,9 +379,10 @@ def PXP(ruta):
 
     date = pd.Timestamp(datetime.now(tz=ZoneInfo("America/Guatemala"))).replace(microsecond=0).tz_localize(None)
     desc = "log Xpression"
-    upgrade(df_final, file, "Xpression", desc, date)
+    upgrade(df_final, log_file_obj, "Xpression", desc)
 
-def PRF(ruta, sistema):
+# PROCESS MEDIAPLAYTS+
+def PRF(ruta, sistema, log_file_obj):
     file = os.path.basename(ruta)
     
     with open(ruta, 'r') as f:
@@ -461,7 +455,7 @@ def PRF(ruta, sistema):
 
     date_proc = pd.Timestamp(datetime.now(tz=ZoneInfo("America/Guatemala"))).replace(microsecond=0).tz_localize(None)
     desc = "log " + sistema
-    upgrade(df_final, file, sistema, desc, date_proc)
+    upgrade(df_final, log_file_obj, sistema, desc)
 
 # PROCESS UPLAY FILES
 def PUP(ruta):
@@ -470,6 +464,7 @@ def PUP(ruta):
 # PROCESS REGIONPLAYER
 def PRP(ruta):
     file = os.path.basename(ruta)
+    pass
 
 # ---------- FUNCIONES PARA LIMPIAR DATOS -----------
 

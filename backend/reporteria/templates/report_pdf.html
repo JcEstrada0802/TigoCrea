@@ -278,7 +278,6 @@
             <thead>
                 <tr>
                     <th style="width: 40%;">PROPERTY</th>
-                    <th style="width: 30%;" class="text-right">CONTRATADO</th>
                     <th style="width: 30%;" class="text-right">TRANSMITIDO</th>
                 </tr>
             </thead>
@@ -286,7 +285,6 @@
                 {% for item in summary_logs %}
                 <tr>
                     <td>{{ loop.index }}. <span class="summary-row-item">{{ item.property }}</span></td>
-                    <td class="text-right">{{ item.contratado }}</td>
                     <td class="text-right">{{ item.transmitido }}</td>
                 </tr>
                 {% endfor %}
