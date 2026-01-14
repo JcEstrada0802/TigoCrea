@@ -29,15 +29,18 @@ def procesar_archivo(ruta: Path, system_name) -> dict:
 
     try:
         with transaction.atomic():
-            system_obj = BroadcastSystem.objects.get(name=real_system_name)
+            system_obj,_ = BroadcastSystem.objects.get_or_create(
+                name=real_system_name,
+                defaults={'description': "Player"}
+            )
 
             log_file_obj, created = AsRunLogFile.objects.get_or_create(
                 file_name=file_name,
-                system=system_obj, # <--- ¡Esto es lo que faltaba!
+                system=system_obj, 
                 defaults={'upload_date': datetime.now(tz=ZoneInfo("America/Guatemala"))}
             )
-    except Exception:
-            # Si otro worker lo creó justo en el microsegundo intermedio
+    except Exception as e:
+            print(f"[DEBUG] Error inesperado: {e}")
             created = False
 
     if not created:

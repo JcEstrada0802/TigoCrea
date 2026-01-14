@@ -41,7 +41,7 @@ services:
       build:
         context: ./front
         args:
-          - VITE_API_URL=${VITE_API_URL}
+          - VITE_API_URL=/api
       container_name: planning_frontend
       ports:
         - "3005:80"
