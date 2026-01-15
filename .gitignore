@@ -212,6 +212,7 @@ __marimo__/
 # Dependencias de Node (¡lo más importante!)
 node_modules/
 
+
 # Directorios de build (compilacion de React/Webpack)
 /build
 /dist
