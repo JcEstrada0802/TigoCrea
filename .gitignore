@@ -221,5 +221,17 @@ node_modules/
 # Directorio de archivos de datos y logs de produccion (AsRunLogs, CSVs, etc.)
 dataSource/
 
+
+# Archivos para build de desarrollo
+docker-compose.local.yml
+
+# Archivos dentro de la carpeta front
+front/Dockerfile.dev
+front/.env.local
+
+# Archivos dentro de la carpeta backend
+backend/Dockerfile.dev
+backend/.env.local
+
 # Archivos del Sistema Operativo macOS
 .DS_Store

@@ -1,11 +1,14 @@
 from django.db import models
+from datetime import timedelta
+
 
 # Modelo: Categoria
 class Categoria(models.Model):
+    id = models.BigAutoField(primary_key=True)
     id_cat = models.CharField(max_length=10, unique=True)
-    nombre = models.CharField(max_length=255, unique=True)
-    color = models.CharField(max_length=7, unique=True) # Para guardar el HEX, e.g., #FFFFFF
-    tipo = models.CharField(max_length=100)
+    nombre = models.CharField(max_length=25, unique=True)
+    color = models.CharField(max_length=7, unique=True) # HEX para FullCalendar
+    tipo = models.CharField(max_length=25)
 
     def __str__(self):
         return self.nombre
@@ -16,8 +19,11 @@ class Categoria(models.Model):
 
 # Modelo: Contenido
 class Contenido(models.Model):
+    id = models.BigAutoField(primary_key=True)
     id_cont = models.CharField(max_length=10, unique=True)
-    nombre = models.CharField(max_length=255, unique=True)
+    nombre = models.CharField(max_length=25, unique=True)
+    orden_pauta = models.CharField(max_length=255, blank=True, null=True)
+    notas = models.CharField(max_length=255, blank=True, null=True)
     categoria = models.ForeignKey(
         Categoria, 
         on_delete=models.CASCADE, 
@@ -29,19 +35,19 @@ class Contenido(models.Model):
 
 # Modelo: Produccion
 class Produccion(models.Model):
+    id = models.BigAutoField(primary_key=True)
     id_prod = models.CharField(max_length=10, unique=True)
-    titulo = models.CharField(max_length=255)
-    media_id = models.CharField(max_length=255, help_text="Nombre del archivo de video/audio")
+    titulo = models.CharField(max_length=50)
+    duracion_total = models.DurationField(default=timedelta(0)) # Mapea a interval
+    origen = models.CharField(
+        max_length=20, 
+        help_text="Live-1, Live-2, Servidor"
+    )
     contenido = models.ForeignKey(
         Contenido, 
         on_delete=models.CASCADE, 
         related_name='producciones'
     )
-    duracion = models.DurationField() # Perfecto para 'interval'
-    origen = models.CharField(max_length=100)
-    logo = models.CharField(max_length=100, blank=True, null=True) # Opcional
-    expiracion = models.DateField(blank=True, null=True) # Opcional
-    episodio = models.IntegerField(blank=True, null=True) # Opcional
 
     def __str__(self):
         return self.titulo
@@ -52,20 +58,20 @@ class Produccion(models.Model):
 
 # Modelo: Segmento
 class Segmento(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    id_seg = models.CharField(max_length=10)
+    duracion = models.DurationField(default=timedelta(0)) # Duración del bloque para la grilla
+    tc_in = models.DurationField(default=timedelta(0))
+    tc_out = models.DurationField(default=timedelta(0))
+    notas = models.CharField(max_length=255, blank=True, null=True)
     produccion = models.ForeignKey(
         Produccion, 
         on_delete=models.CASCADE, 
         related_name='segmentos'
     )
-    
-    # Aquí puedes agregar más campos después...
-    # Ejemplo:
-    # nombre_segmento = models.CharField(max_length=255, blank=True)
-    # tiempo_inicio = models.DurationField(blank=True, null=True)
 
     def __str__(self):
-        # Muestra el título de la producción y el ID del segmento
-        return f"Segmento {self.id} de {self.produccion.titulo}"
+        return f"Segmento {self.id_seg} de {self.produccion.titulo}"
 
     class Meta:
         verbose_name = 'Segmento'

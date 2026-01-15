@@ -100,7 +100,7 @@ def PAM(ruta, log_file_obj):
 
     # Preparar columna de Metadata
     df_raw['metadata'] = df_raw.apply(lambda row: {
-        "program_block": None if pd.isna(row['program_block']) or row['program_block'] is np.nan else row['program_block'],
+        "program_block": row['tape'] if (row['tape'] != "" and pd.notna(row['tape'])) else row['program_block'],
         "capa": None if pd.isna(row['capa']) or row['capa'] is np.nan else row['capa'],
         "tape": None if pd.isna(row['tape']) or row['tape'] is np.nan else row['tape'],
         "tipo": None if pd.isna(row['tipo']) or row['tipo'] is np.nan else row['tipo'],
@@ -366,6 +366,21 @@ def PXP(ruta, log_file_obj):
         ]
     )
     df_raw = df_raw.drop(columns=['itemid','fbid','sceneuid','thumbhash'])
+    
+    # FUNCION PARA PROCESAR PROGRAM_BLOCK
+    def procesar_program_block(row):
+        titulo = str(row['title'])
+        grupo = row['group']
+        clip = str(row['clipname'])
+        
+        # Caso especial: TM PARTIDO
+        if "TM-PARTIDO" in titulo:
+            parts = clip.split("|")
+            # Verificamos que el split tenga al menos la posición 1
+            return parts[1].strip() if len(parts) > 1 else grupo
+        
+        # Caso por defecto (tu lógica original)
+        return None if pd.isna(grupo) or grupo is np.nan else grupo
 
     df_raw['start_time'] = df_raw['time_info'].apply(extract_start_time)
     df_raw['start_time'] = pd.to_datetime(df_raw['start_time'], format="%d-%m-%Y %H:%M:%S.%f", errors='coerce').dt.floor("s")
@@ -376,7 +391,8 @@ def PXP(ruta, log_file_obj):
 
 
     df_raw['metadata'] = df_raw.apply(lambda row: {
-        "program_block": None if pd.isna(row['group']) or row['group'] is np.nan else row['group']}, axis=1)
+        "program_block": procesar_program_block(row)
+    }, axis=1)
 
     df_final = pd.DataFrame({
         'start_time': df_raw['start_time'],
