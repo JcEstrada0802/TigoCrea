@@ -235,3 +235,5 @@ backend/.env.local
 
 # Archivos del Sistema Operativo macOS
 .DS_Store
+
+*.rdb

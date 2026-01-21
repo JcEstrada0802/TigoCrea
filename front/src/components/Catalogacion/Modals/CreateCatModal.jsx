@@ -4,7 +4,7 @@ import { TagIcon, IdentificationIcon, Bars3BottomLeftIcon } from '@heroicons/rea
 import { SwatchIcon } from '@heroicons/react/24/solid';
 import axios from 'axios';
 
-function CreateCatModal({ isOpen, onClose, onFinish }) {
+function CreateCatModal({ isOpen, onClose, onFinish, mode }) {
   const apiUrl = import.meta.env.VITE_API_URL;
   const token = localStorage.getItem("token");
 
@@ -38,11 +38,11 @@ function CreateCatModal({ isOpen, onClose, onFinish }) {
         }
       });
       onClose();
-      onFinish('success', 'Creación exitosa')
+      onFinish('success', 'Creación exitosa', 'categorias')
     } catch (error) {
       console.log(error);
       onClose();
-      onFinish('error', 'Error al Crear la categoría');
+      onFinish('error', 'Error al Crear la categoría', 'categorias');
     }
   };
 
@@ -120,7 +120,7 @@ function CreateCatModal({ isOpen, onClose, onFinish }) {
                 CANCELAR
               </button>
               <button type="submit" className="submit">
-                GUARDAR
+                {mode=='create'? 'CREAR':'ACTUALIZAR'}
               </button>
             </div>
 

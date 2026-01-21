@@ -4,6 +4,7 @@ import CreateCatModal from './Modals/CreateCatModal';
 import CreateContModal from './Modals/CreateContModal';
 import CreateProdModal from './Modals/CreateProdModal';
 import CreateSegModal from './Modals/CreateSegModal';
+import DeleteConfirmModal from './Modals/DeleteModals/DeleteConfirmModal';
 import axios from 'axios';
 import Alert from '../utils/Alert';
 import { useSelection } from './Hooks/UseSelection';
@@ -114,11 +115,36 @@ export default function PanelPrincipal() {
   ]);
 
   // Estados de Selección
-  const [selectedCategorias, toggleCategory] = useSelection();
-  const [selectedContenidos, toggleContenido] = useSelection();
-  const [selectedProducciones, toggleProduccion] = useSelection();
+  const [selectedCategorias, toggleCategory, setSelectedCategorys] = useSelection();
+  const [selectedContenidos, toggleContenido, setSelectedContenidos] = useSelection();
+  const [selectedProducciones, toggleProduccion, setSelectedProducciones] = useSelection();
+  const [selectedSegmentos, toggleSegmento, setSelectedSegmentos] = useSelection();
 
-  // Función para setear las categorias
+  // Estado para Manejar la eliminación de secciones
+  const [deleteModalConfig, setDeleteModalConfig] = useState({ 
+    open: false, 
+    seccion: '', 
+    items: [] 
+  });
+
+  // ------------------------- LIMPIEZA DE SELECTEDS -------------------------
+  useEffect(() => {
+    const idsVigentes = contenidos.map(c => c.id);
+    setSelectedContenidos(prev => prev.filter(id => idsVigentes.includes(id)));
+  }, [contenidos]);
+
+  useEffect(() => {
+    const idsVigentes = producciones.map(p => p.id);
+    setSelectedProducciones(prev => prev.filter(id => idsVigentes.includes(id)));
+  }, [producciones]);
+
+  useEffect(() => {
+    const idsVigentes = segmentos.map(s => s.id);
+    setSelectedSegmentos(prev => prev.filter(id => idsVigentes.includes(id)));
+  }, [segmentos]);
+  // -------------------------------------------------------------------------
+
+  // Fetchear Categorias
   const fetchCategorias = async () => {
       try{
         const response = await axios.get(apiUrl+'/catalogo/getCategorias/', {
@@ -134,8 +160,8 @@ export default function PanelPrincipal() {
         console.log(e);
       }
     }
-
-
+  
+  // Fetchear Contenidos
   const fetchContenidos = async () => {
     try{
       const response = await axios.post(apiUrl+'/catalogo/getContenidos/',{
@@ -143,12 +169,12 @@ export default function PanelPrincipal() {
       },{
         headers:{Authorization: `Token ${token}`,
                 'Content-Type': 'application/json'
-      }
+        }
       })
       const formattedContenidos = response.data.map(cont => ({
           id: cont.id,
           label: cont.nombre,
-          color: cont.color
+          color: cont.categoria_color
         }));
       setContenidos(formattedContenidos);
     }catch(e){
@@ -156,36 +182,152 @@ export default function PanelPrincipal() {
     }
   }
 
-  useEffect(() => {
-    if(selectedCategorias.length !== 0){
-      fetchContenidos();
-    }
-  },[selectedCategorias])
+  // Fetchear Producciones
+  const fetchProducciones = async () => {
+    try{
+      const response = await axios.post(apiUrl+'/catalogo/getProducciones/',{
+        contenidos: selectedContenidos
+      },{
+        headers:{Authorization: `Token ${token}`,
+                'Content-Type': 'application/json'
+        }
+      })
+      const formattedProducciones = response.data.map(prod => ({
+        id: prod.id,
+        label: prod.titulo,
+        color: prod.categoria_color
+      }));
+      setProducciones(formattedProducciones);
+    }catch(e){
 
+    }
+  }
+
+  const fetchSegmentos = async () => {
+    try{
+      const response = await axios.post(apiUrl+'/catalogo/getSegmentos/',{
+        producciones: selectedProducciones
+      },{
+        headers:{Authorization: `Token ${token}`,
+                'Content-Type': 'application/json'
+        }
+      })
+      const formattedSegmentos = response.data.map(seg => ({
+        id: seg.id,
+        label: seg.titulo,
+        color: seg.categoria_color
+      }));
+      setSegmentos(formattedSegmentos);
+    }catch(e){
+
+    }
+  }
+
+  // -------------------- ELIMINAR SECCIONES DEL CATALOGO --------------------
+  const onDelete = (seccion, listaCompleta, idsSeleccionados) =>{
+    console.log(seccion,": ", idsSeleccionados)
+    const items = listaCompleta.filter(i => idsSeleccionados.includes(i.id));
+    if (items.length === 0) return; // O mandar un alert de "Seleccioná algo pa"
+    
+    setDeleteModalConfig({ open: true, seccion, items });
+  }
+
+  const handleDeleteConfirm = async () => {
+    const { seccion, items } = deleteModalConfig;
+    const idsAEliminar = items.map(i => i.id);
+    const endpoints = {
+      'categorias': '/catalogo/deleteCategorias/',
+      'contenidos': '/catalogo/deleteContenidos/',
+      'producciones': '/catalogo/deleteProducciones/',
+      'segmentos': '/catalogo/deleteSegmentos/'
+    };
+
+    try {
+      await axios.post(`${apiUrl}${endpoints[seccion]}`, 
+        { ids: idsAEliminar }, 
+        { headers: { Authorization: `Token ${token}` } }
+      );
+      setDeleteModalConfig({ ...deleteModalConfig, open: false });
+      handleTerminate('success', `${items.length} items eliminados correctamente`, seccion);
+      limpiarSelecciones(seccion);
+
+    } catch (error) {
+      console.error("Error al eliminar:", error);
+      handleTerminate('error', 'No se pudieron eliminar los elementos', seccion);
+    }
+  };
+
+  const limpiarSelecciones = (seccion) => {
+    if (seccion === 'categorias') setSelectedCategorys([]);
+    if (seccion === 'contenidos') setSelectedContenidos([]);
+    if (seccion === 'producciones') setSelectedProducciones([]);
+    if (seccion === 'segmentos') setSelectedSegmentos([]);
+  };
+  // -------------------------------------------------------------------------
+
+  // Fetchear Categorias
   useEffect(() => {
     fetchCategorias();
   },[])
 
+  // Fetchear Contenidos
+  useEffect(() => {
+    if(selectedCategorias.length !== 0){
+      fetchContenidos();
+    }else{
+      setContenidos([]);
+      setSelectedContenidos([]);
+    }
+  },[selectedCategorias])
+
+  // Fetchear Producciones
+  useEffect(() => {
+    if(selectedContenidos.length !== 0){
+      fetchProducciones();
+    }else{
+      setProducciones([])
+      setSelectedProducciones([])
+    }
+  },[selectedContenidos])
+
+  // Fetchear Segmentos
+  useEffect(() => {
+    if(selectedProducciones.length !== 0){
+      fetchSegmentos();
+    }else{
+      setSegmentos([])
+      setSelectedSegmentos([])
+    }
+  },[selectedProducciones])
+
   useEffect(() => {
       setColumnas([
-        { title: 'CATEGORÍA', items: categorias, addFunc: setShowCatModal, selFunc:  toggleCategory},
-        { title: 'CONTENIDO', items: contenidos, addFunc: setShowContModal, selFunc: toggleContenido },
-        { title: 'PRODUCCIÓN', items: producciones, addFunc: setShowProdModal, selFunc: toggleProduccion },
-        { title: 'SEGMENTACIÓN', items: segmentos, addFunc: setShowSegModal, selFunc: toggleCategory },
+        { title: 'CATEGORÍA', items: categorias, addFunc: setShowCatModal, selFunc:  toggleCategory, delFunc: () => {onDelete('categorias', categorias, selectedCategorias)}},
+        { title: 'CONTENIDO', items: contenidos, addFunc: setShowContModal, selFunc: toggleContenido, delFunc: () => {onDelete('contenidos', contenidos, selectedContenidos)}},
+        { title: 'PRODUCCIÓN', items: producciones, addFunc: setShowProdModal, selFunc: toggleProduccion, delFunc: () => {onDelete('producciones', producciones, selectedProducciones)}},
+        { title: 'SEGMENTACIÓN', items: segmentos, addFunc: setShowSegModal, selFunc: toggleSegmento, delFunc: () => {onDelete('segmentos', segmentos, selectedSegmentos)}},
       ]);
-  }, [categorias, contenidos, producciones, segmentos]);
+  }, [categorias, contenidos, producciones, segmentos, selectedCategorias, selectedContenidos, selectedProducciones, selectedSegmentos]);
 
   const cerrar = (setter) => {
     setter(false);
   };
 
+  const handleTerminate = (type, message, tag) =>{
+    const fetchMap = {
+      'segmentos': fetchSegmentos,
+      'producciones': fetchProducciones,
+      'contenidos': fetchContenidos,
+      'categorias': fetchCategorias
+    };
 
-  const handleTerminate = (type, message) =>{
-    fetchCategorias();
+    fetchMap[tag]?.();
+
     setMensaje(message);
     setTipo(type);
     setShowAlert(true);
     setTimeout(() => setShowAlert(false), 2500);
+
   }
 
   return (
@@ -198,13 +340,21 @@ export default function PanelPrincipal() {
             items={col.items} 
             onAdd={col.addFunc}
             onSelect={col.selFunc}
+            onDelete={col.delFunc}
           />
         ))}
       </div>
-      <CreateCatModal isOpen={showCatModal} onClose={() => cerrar(setShowCatModal)} onFinish={handleTerminate}/>
-      <CreateContModal isOpen={showContModal} onClose={() => cerrar(setShowContModal)} onFinish={handleTerminate}/>
-      <CreateProdModal isOpen={showProdModal} onClose={() => cerrar(setShowProdModal)} onFinish={handleTerminate}/>
-      <CreateSegModal isOpen={showSegModal} onClose={() => cerrar(setShowSegModal)} onFinish={handleTerminate}/>
+      <CreateCatModal isOpen={showCatModal} onClose={() => cerrar(setShowCatModal)} onFinish={handleTerminate} mode={'create'}/>
+      <CreateContModal isOpen={showContModal} onClose={() => cerrar(setShowContModal)} onFinish={handleTerminate} selectedCat={selectedCategorias.at(-1)}/>
+      <CreateProdModal isOpen={showProdModal} onClose={() => cerrar(setShowProdModal)} onFinish={handleTerminate} selectedCont={selectedContenidos.at(-1)}/>
+      <CreateSegModal isOpen={showSegModal} onClose={() => cerrar(setShowSegModal)} onFinish={handleTerminate} selectedProd={selectedProducciones.at(-1)}/>
+      <DeleteConfirmModal 
+        isOpen={deleteModalConfig.open} 
+        onClose={() => setDeleteModalConfig({ ...deleteModalConfig, open: false })} 
+        onConfirm={handleDeleteConfirm} // Esta es la función que hará el axios.delete
+        seccion={deleteModalConfig.seccion} 
+        itemsSeleccionados={deleteModalConfig.items} 
+      />
       {showAlert && <Alert type={tipo} message={mensaje}/>}
     </div>
   );

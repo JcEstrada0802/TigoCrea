@@ -11,5 +11,5 @@ export function useSelection() {
         }
     });
   }
-  return [selected, toggle];
+  return [selected, toggle, setSelected];
 }

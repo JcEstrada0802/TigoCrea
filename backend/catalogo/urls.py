@@ -1,10 +1,19 @@
 from django.urls import path
 from . import views
-from .views import getCategorias, createCategoria, getContenidos, createContenido
+from .views import *
 
 
 
-urlpatterns = [ path('getCategorias/', getCategorias, name='getCategorias'),
+urlpatterns = [ path('getCategorias/', getCategorias, name='getCategorias'),                # GET
                 path('getContenidos/', getContenidos, name='getContenidos'),
-                path('createCategoria/', createCategoria, name='createCategoria'),
-                path('createContenido/', createContenido, name='createContenido'),]
+                path('getProducciones/', getProducciones, name='getProducciones'),
+                path('getSegmentos/', getSegmentos, name='getSegmentos'),
+                path('createCategoria/', createCategoria, name='createCategoria'),          #CREATE
+                path('createContenido/', createContenido, name='createContenido'),
+                path('createProduccion/', createProduccion, name='createProduccion'),
+                path('createSegmento/', createSegmento, name='createSegmento'),
+                path('deleteCategorias/', delete_item_catalogo, name='deleteCategorias'),       #DELETE
+                path('deleteContenidos/', delete_item_catalogo, name='deleteContenidos'),
+                path('deleteProducciones/', delete_item_catalogo, name='deleteProducciones'),
+                path('deleteSegmentos/', delete_item_catalogo, name='deleteSegmentos'),]
+

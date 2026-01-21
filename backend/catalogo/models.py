@@ -36,7 +36,7 @@ class Contenido(models.Model):
 # Modelo: Produccion
 class Produccion(models.Model):
     id = models.BigAutoField(primary_key=True)
-    id_prod = models.CharField(max_length=10, unique=True)
+    # id_prod = models.CharField(max_length=10, unique=True)
     titulo = models.CharField(max_length=50)
     duracion_total = models.DurationField(default=timedelta(0)) # Mapea a interval
     origen = models.CharField(
@@ -59,11 +59,12 @@ class Produccion(models.Model):
 # Modelo: Segmento
 class Segmento(models.Model):
     id = models.BigAutoField(primary_key=True)
-    id_seg = models.CharField(max_length=10)
+    titulo = models.CharField(max_length=100, default='PENDIENTE')
+    id_media= models.CharField(max_length=255, default='PENDIENTE')
     duracion = models.DurationField(default=timedelta(0)) # Duración del bloque para la grilla
     tc_in = models.DurationField(default=timedelta(0))
     tc_out = models.DurationField(default=timedelta(0))
-    notas = models.CharField(max_length=255, blank=True, null=True)
+    notas = models.CharField(max_length=255, blank=True, null=True) # REMOVER ESTE CAMPO
     produccion = models.ForeignKey(
         Produccion, 
         on_delete=models.CASCADE, 

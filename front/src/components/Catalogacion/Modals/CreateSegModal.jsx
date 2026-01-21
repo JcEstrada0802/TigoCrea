@@ -1,67 +1,87 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-// Importamos los iconos nuevos para Segmentos
 import {
-  RectangleStackIcon, // Para el título
+  RectangleStackIcon,
   IdentificationIcon,
-  CircleStackIcon, // Para Fuente
-  LinkIcon, // Para Media Id
-  ClockIcon, // Para Duración
-  ArrowRightCircleIcon, // Para TC In
-  ArrowLeftCircleIcon, // Para TC Out
-  FilmIcon // Para Producción
+  LinkIcon,
+  ClockIcon,
+  ArrowRightCircleIcon,
+  ArrowLeftCircleIcon,
+  FilmIcon,
+  PencilSquareIcon
 } from '@heroicons/react/24/outline';
 import axios from 'axios';
 
-// 1. Renombramos el componente y añadimos la prop 'produccionSeleccionada'
-function CreateSegModal({ isOpen, onClose, onFinish, produccionSeleccionada }) {
+function CreateSegModal({ isOpen, onClose, onFinish, selectedProd }) {
   const apiUrl = import.meta.env.VITE_API_URL;
   const token = localStorage.getItem("token");
 
-  // 2. Estados para los campos de Segmento
-  const [idValue, setIdValue] = useState('');
-  const [fuente, setFuente] = useState('');
-  const [mediaId, setMediaId] = useState('');
-  const [duracion, setDuracion] = useState('');
-  const [tcIn, setTcIn] = useState('');
-  const [tcOut, setTcOut] = useState('');
-  // No necesitamos estado para 'produccion', ya que viene de las props
+  // Estados basados en el modelo Segmento
+  const [titulo, setTitulo] = useState('');
+  const [idMedia, setIdMedia] = useState('');
+  const [duracion, setDuracion] = useState('00:00:00');
+  const [tcIn, setTcIn] = useState('00:00:00');
+  const [tcOut, setTcOut] = useState('00:00:00');
+  const [notas, setNotas] = useState('');
+  
+  // Estado para la lista de producciones y selección
+  const [produccionesList, setProduccionesList] = useState([]);
+  const [selectedProduccionId, setSelectedProduccionId] = useState('');
 
-  // 3. Resetear el formulario cuando se abre
   useEffect(() => {
     if (isOpen) {
-      setIdValue('');
-      setFuente('');
-      setMediaId('');
-      setDuracion('');
-      setTcIn('');
-      setTcOut('');
-    }
-  }, [isOpen]);
+      // Reset de campos
+      setTitulo('');
+      setIdMedia('');
+      setDuracion('00:00:00');
+      setTcIn('00:00:00');
+      setTcOut('00:00:00');
+      setNotas('');
 
-  // 4. handleSubmit actualizado para crear un Segmento
+      const fetchData = async () => {
+        try {
+          // Obtenemos todas las producciones (pasando 0 como lo manejas en el backend)
+          const response = await axios.post(apiUrl + "/catalogo/getProducciones/", {
+            contenidos: [0]
+          }, {
+            headers: { Authorization: `Token ${token}` }
+          });
+          setProduccionesList(response.data);
+
+          // Si ya hay una producción seleccionada en el panel principal, la fijamos
+          if (selectedProd) {
+            setSelectedProduccionId(selectedProd);
+          } else {
+            setSelectedProduccionId('');
+          }
+        } catch (error) {
+          console.error("Error al cargar producciones", error);
+        }
+      };
+      fetchData();
+    }
+  }, [isOpen, selectedProd, apiUrl, token]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post(apiUrl + "/catalogo/createSegmento/", {
-        codigo: idValue,
-        fuente: fuente,
-        media_id: mediaId,
+      await axios.post(apiUrl + "/catalogo/createSegmento/", {
+        titulo: titulo,
+        id_media: idMedia,
         duracion: duracion,
         tc_in: tcIn,
         tc_out: tcOut,
-        produccion: produccionSeleccionada.id // <-- Se envía el ID de la producción padre
+        notas: notas, // Opcional
+        produccion_id: selectedProduccionId // Enviamos el ID para el pk de la FK
       }, {
-        headers: {
-          Authorization: `Token ${token}`
-        }
+        headers: { Authorization: `Token ${token}` }
       });
       onClose();
-      onFinish('success', 'Segmento creado con éxito');
+      onFinish('success', 'Segmento creado con éxito', 'segmentos');
     } catch (error) {
-      console.log(error);
-      onClose();
-      onFinish('error', 'Error al crear el segmento');
+      console.error(error);
+      const errorMsg = error.response?.data?.error || 'Error al crear el segmento';
+      onFinish('error', errorMsg, 'segmentos');
     }
   };
 
@@ -73,86 +93,87 @@ function CreateSegModal({ isOpen, onClose, onFinish, produccionSeleccionada }) {
         <StyledWrapper>
           <form className="form" onSubmit={handleSubmit}>
             <p className="title">
-              <RectangleStackIcon className="icon" /> {/* Icono y Título nuevo */}
-              Creación de Segmento
+              <RectangleStackIcon className="icon" />
+              Nuevo Segmento
             </p>
             
             <div className="form-grid">
-              
-              {/* --- FILA 1: Id, Fuente, Media Id --- */}
-              <label>
+              {/* Titulo */}
+              <label className="full-width">
                 <IdentificationIcon className="input-icon" />
                 <input
                   className="input"
                   type="text"
                   required
-                  value={idValue}
-                  onChange={(e) => setIdValue(e.target.value)}
+                  value={titulo}
+                  onChange={(e) => setTitulo(e.target.value)}
                 />
-                <span>Id*</span>
-              </label>
-              
-              <label>
-                <CircleStackIcon className="input-icon" />
-                <select 
-                  className="input" 
-                  value={fuente} 
-                  onChange={(e) => setFuente(e.target.value)}
-                  required
-                >
-                  <option value="" disabled hidden></option>
-                  <option value="MEDIA">MEDIA</option>
-                  <option value="LIVE-1">LIVE-1</option>
-                  <option value="LIVE-2">LIVE-2</option>
-                </select>
-                <span>Fuente*</span>
+                <span>Titulo*</span>
               </label>
 
-              <label>
+              {/* Producción (Relación) */}
+              <label className="full-width">
+                <FilmIcon className="input-icon" />
+                <select 
+                  className="input"
+                  required
+                  value={selectedProduccionId}
+                  onChange={(e) => setSelectedProduccionId(e.target.value)}
+                  disabled={!!selectedProd?.id}
+                >
+                  <option value="" disabled hidden></option>
+                  {produccionesList.map((prod) => (
+                    <option key={prod.id} value={prod.id}>{prod.label || prod.titulo}</option>
+                  ))}
+                </select>
+                <span>Producción*</span>
+              </label>
+
+              {/* ID Media */}
+              <label className="full-width">
                 <LinkIcon className="input-icon" />
                 <input
                   className="input"
                   type="text"
                   required
-                  value={mediaId}
-                  onChange={(e) => setMediaId(e.target.value)}
+                  value={idMedia}
+                  onChange={(e) => setIdMedia(e.target.value)}
                 />
-                <span>Media Id*</span>
+                <span>ID Media*</span>
               </label>
               
-              {/* --- FILA 2: TC In, TC Out, Duración --- */}
+              {/* TC In */}
               <label>
                 <ArrowRightCircleIcon className="input-icon" />
                 <input
                   className="input"
                   type="text"
-                  placeholder="00:00:00:00"
                   required
                   value={tcIn}
                   onChange={(e) => setTcIn(e.target.value)}
                 />
-                <span>TC In*</span>
+                <span>TC In (HH:MM:SS)*</span>
               </label>
 
+              {/* TC Out */}
               <label>
                 <ArrowLeftCircleIcon className="input-icon" />
                 <input
                   className="input"
                   type="text"
-                  placeholder="00:00:00:00"
                   required
                   value={tcOut}
                   onChange={(e) => setTcOut(e.target.value)}
                 />
-                <span>TC Out*</span>
+                <span>TC Out (HH:MM:SS)*</span>
               </label>
 
+              {/* Duración */}
               <label>
                 <ClockIcon className="input-icon" />
                 <input
                   className="input"
                   type="text"
-                  placeholder="00:00:00:00"
                   required
                   value={duracion}
                   onChange={(e) => setDuracion(e.target.value)}
@@ -160,24 +181,19 @@ function CreateSegModal({ isOpen, onClose, onFinish, produccionSeleccionada }) {
                 <span>Duración*</span>
               </label>
 
-              {/* --- FILA 3: Producción (Deshabilitado) --- */}
-              <div className="full-width static-label"> {/* Usamos un label estático */}
-                <label className="static-floating-label">
-                  <FilmIcon className="input-icon-static" />
-                  Producción
-                </label>
+              {/* Notas */}
+              <label>
+                <PencilSquareIcon className="input-icon" />
                 <input
                   className="input"
                   type="text"
-                  // Usamos optional chaining (?) por si la prop viene vacía al inicio
-                  value={produccionSeleccionada?.titulo || 'N/A'} 
-                  disabled // <-- CAMPO DESHABILITADO
+                  value={notas}
+                  onChange={(e) => setNotas(e.target.value)}
                 />
-              </div>
-
+                <span>Notas</span>
+              </label>
             </div>
 
-            {/* --- BOTONES --- */}
             <div className="button-group">
               <button type="button" className="cancel" onClick={onClose}>
                 CANCELAR
@@ -186,7 +202,6 @@ function CreateSegModal({ isOpen, onClose, onFinish, produccionSeleccionada }) {
                 GUARDAR
               </button>
             </div>
-
           </form>
         </StyledWrapper>
       </ModalContent>
@@ -194,236 +209,28 @@ function CreateSegModal({ isOpen, onClose, onFinish, produccionSeleccionada }) {
   );
 }
 
-// --- ESTILOS FORMALES (Light Mode) ---
-// (Copiados y adaptados)
-
 const ModalOverlay = styled.div`
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 999;
+  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5);
+  display: flex; justify-content: center; align-items: center; z-index: 999;
 `;
-
 const ModalContent = styled.div`
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  background: #fff; border-radius: 10px; box-shadow: 0 10px 15px rgba(0,0,0,0.1);
 `;
-
 const StyledWrapper = styled.div`
-  .form {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    width: 90vw;
-    max-width: 680px; /* Modal grande */
-    padding: 24px;
-    border-radius: 20px;
-    position: relative;
-    background-color: #fff;
-    color: #1f2937;
-  }
-
-  .title {
-    font-size: 24px;
-    font-weight: 600;
-    position: relative;
-    display: flex;
-    align-items: center;
-    color: #111827;
-    margin-bottom: 10px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid #e5e7eb;
-  }
-
-  .title .icon {
-    width: 28px;
-    height: 28px;
-    color: #2563eb;
-    margin-right: 12px;
-  }
-  
-  /* --- ESTILOS DEL FORMULARIO --- */
-
-  .form-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr); /* 3 columnas */
-    gap: 25px 20px;
-  }
-  
-  .form-grid .full-width {
-    grid-column: 1 / -1; /* Ocupa todo el ancho */
-  }
-
-  .form label {
-    position: relative;
-  }
-  
-  .form .input-icon {
-    position: absolute;
-    left: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 20px;
-    height: 20px;
-    color: #9ca3af;
-    z-index: 1;
-  }
-
-  .form label .input {
-    background-color: #f9fafb;
-    color: #1f2937;
-    width: 100%;
-    padding: 20px 10px 5px 40px;
-    outline: none;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    font-size: medium;
-    transition: border-color 0.3s ease, box-shadow 0.3s ease;
-  }
-  
-  /* --- Estilo para inputs deshabilitados --- */
-  .form label .input:disabled,
-  .form .static-label .input:disabled {
-    background-color: #e5e7eb; /* Fondo gris */
-    color: #6b7281; /* Texto gris */
-    cursor: not-allowed;
-  }
-
-  .form label .input:focus {
-    border-color: #2563eb;
-    box-shadow: 0 0 0 1px #2563eb;
-  }
-  
-  .form label .input:focus ~ .input-icon {
-    color: #2563eb;
-  }
-
-  .form label select.input {
-    padding-top: 20px;
-    padding-bottom: 5px;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23374151' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
-    background-position: right 0.5rem center;
-    background-repeat: no-repeat;
-    background-size: 1.5em;
-  }
-  
-  .form label select.input + .input-icon {
-    top: 19px;
-    transform: none;
-  }
-
-  .form label span {
-    color: #6b7281;
-    position: absolute;
-    left: 40px;
-    top: 12.5px;
-    font-size: 0.9em;
-    transition: 0.3s ease;
-    pointer-events: none;
-    background-color: #f9fafb;
-    padding: 0 2px;
-    z-index: 2;
-  }
-
-  /* Animación para inputs */
-  .form label .input:focus + span,
-  .form label .input:valid + span {
-    color: #2563eb;
-    top: -8px;
-    font-size: 0.75em;
-    font-weight: 500;
-    background-color: #fff;
-    left: 38px;
-  }
-  
-  .form label select:focus + span,
-  .form label select:valid + span {
-    color: #2563eb;
-    top: -8px;
-    font-size: 0.75em;
-    font-weight: 500;
-    background-color: #fff;
-    left: 38px;
-  }
-
-  /* --- Estilos para Label Estático (para el campo deshabilitado) --- */
-  .form .static-label {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end; 
-    position: relative; /* Para el icono */
-  }
-  
-  .form .static-floating-label {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    color: #2563eb;
-    font-size: 0.75em;
-    font-weight: 500;
-    margin-bottom: 4px;
-    padding-left: 2px;
-    background-color: transparent;
-  }
-  
-  .form .static-floating-label .input-icon-static {
-    width: 14px;
-    height: 14px;
-    color: #2563eb;
-  }
-  
-  .form .static-label .input-icon {
-    top: 36px; /* Posición del icono en el input estático */
-  }
-
-  /* --- ESTILOS DE BOTONES --- */
-  .button-group {
-    display: flex;
-    gap: 15px;
-    margin-top: 20px;
-    justify-content: flex-end;
-    padding-top: 15px;
-    border-top: 1px solid #e5e7eb;
-  }
-
-  .submit, .cancel {
-    flex: none;
-    padding: 10px 16px;
-    border: none;
-    outline: none;
-    border-radius: 8px;
-    color: #fff;
-    font-size: 14px;
-    font-weight: 500;
-    transition: 0.3s ease;
-    cursor: pointer;
-  }
-
-  .submit {
-    background-color: #2563eb;
-    border: 1px solid #2563eb;
-    color: #fff;
-  }
-
-  .submit:hover {
-    background-color: #1d4ed8;
-    border-color: #1d4ed8;
-  }
-  
-  .cancel {
-    background-color: #fff;
-    border: 1px solid #d1d5db;
-    color: #374151;
-  }
-
-  .cancel:hover {
-    background-color: #f3f4f6;
-  }
+  .form { display: flex; flex-direction: column; gap: 20px; width: 90vw; max-width: 600px; padding: 24px; border-radius: 20px; background-color: #fff; }
+  .title { font-size: 24px; font-weight: 600; display: flex; align-items: center; border-bottom: 1px solid #e5e7eb; padding-bottom: 15px; }
+  .title .icon { width: 28px; height: 28px; color: #2563eb; margin-right: 12px; }
+  .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 25px 20px; }
+  .form-grid .full-width { grid-column: 1 / -1; }
+  .form label { position: relative; }
+  .form .input-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 20px; height: 20px; color: #9ca3af; z-index: 1; }
+  .form label .input { background: #f9fafb; width: 100%; padding: 20px 10px 5px 40px; border: 1px solid #d1d5db; border-radius: 8px; outline: none; font-size: medium; }
+  .form label .input:disabled { background-color: #f3f4f6; color: #9ca3af; cursor: not-allowed; }
+  .form label span { position: absolute; left: 40px; top: 12.5px; color: #6b7281; transition: 0.3s; pointer-events: none; }
+  .form label .input:focus + span, .form label .input:valid + span, .form label .input:disabled + span { top: -8px; font-size: 0.75em; background: #fff; left: 38px; color: #2563eb; font-weight: 500; }
+  .button-group { display: flex; gap: 15px; justify-content: flex-end; border-top: 1px solid #e5e7eb; padding-top: 15px; }
+  .submit { background: #2563eb; color: white; padding: 10px 16px; border-radius: 8px; cursor: pointer; border: none; font-weight: bold; }
+  .cancel { background: white; border: 1px solid #d1d5db; padding: 10px 16px; border-radius: 8px; cursor: pointer; color: #374151; font-weight: bold; }
 `;
 
 export default CreateSegModal;
