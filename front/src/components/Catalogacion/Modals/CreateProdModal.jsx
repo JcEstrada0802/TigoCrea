@@ -10,7 +10,7 @@ import {
 } from '@heroicons/react/24/outline';
 import axios from 'axios';
 
-function CreateProdModal({ isOpen, onClose, onFinish, selectedCont }) {
+function CreateProdModal({ isOpen, onClose, onFinish, selectedCont, config }) {
   const apiUrl = import.meta.env.VITE_API_URL;
   const token = localStorage.getItem("token");
 
@@ -22,44 +22,76 @@ function CreateProdModal({ isOpen, onClose, onFinish, selectedCont }) {
   const [contenidosList, setContenidosList] = useState([]);
 
   useEffect(() => {
-    if (isOpen) {
-      setTitulo('');
-      setContenidoId(selectedCont || '');
-      setDuracion('00:00:00');
-      setOrigen('');
+    const prepareModal = async () => {
+      if (!isOpen) return;
 
-      const fetchData = async () => {
-        try {
-          const contResponse = await axios.post(apiUrl + "/catalogo/getContenidos/", {
-            categorias: [0]
-          },{
-            headers: { Authorization: `Token ${token}` }
-          });
-          setContenidosList(contResponse.data);
-        } catch (error) {
-          console.error("Error al cargar contenidos", error);
+      try {
+        const contResponse = await axios.post(apiUrl + "/catalogo/getContenidos/", 
+          { categorias: [0] },
+          { headers: { Authorization: `Token ${token}` } }
+        );
+        setContenidosList(contResponse.data);
+        if (config.mode === "edit") {
+          const response = await axios.post(apiUrl + "/catalogo/getProduccion/", 
+            { producciones: config.id },
+            { headers: { Authorization: `Token ${token}` } }
+          );
+          
+          const prod = response.data[0];
+          if (prod) {
+            setTitulo(prod.titulo);
+            setContenidoId(prod.contenido_id); 
+            setOrigen(prod.origen);
+            setDuracion(prod.duracion_total);
+          }
+        } else {
+          // Reset para creación
+          setTitulo('');
+          setContenidoId(selectedCont || '');
+          setDuracion('00:00:00:00');
+          setOrigen('');
         }
-      };
-      fetchData();
-    }
-  }, [isOpen, apiUrl, token]);
+      } catch (error) {
+        console.error("Error al preparar el modal:", error);
+      }
+    };
+
+    prepareModal();
+  }, [isOpen, config.id, config.mode, apiUrl, token]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // 1. Definimos si es actualización o creación
+    const isUpdating = config.mode === "edit";
+    const url = isUpdating 
+      ? apiUrl + "/catalogo/updateProduccion/" 
+      : apiUrl + "/catalogo/createProduccion/";
+
     try {
-      await axios.post(apiUrl + "/catalogo/createProduccion/", {
+      const payload = {
         titulo: titulo,
         contenido_id: contenidoId, // ID de la Foreign Key
-        duracion_total: duracion,
+        duracion_total: duracion,  // String "HH:MM:SS"
         origen: origen
-      }, {
+      };
+
+      if (isUpdating) {
+        payload.id = config.id[0];
+      }
+
+      await axios.post(url, payload, {
         headers: { Authorization: `Token ${token}` }
       });
+
       onClose();
-      onFinish('success', 'Producción creada con éxito', 'producciones');
+      onFinish('success', isUpdating ? 'Producción actualizada con éxito' : 'Producción creada con éxito', 'producciones');
+
     } catch (error) {
-      console.error(error);
-      onFinish('error', 'Error al crear la producción', 'producciones');
+      const mensajeError = error.response?.data?.error || 'Error al procesar la producción';
+      
+      console.error("Error en submit:", error);
+      onFinish('error', mensajeError, 'producciones');
     }
   };
 
@@ -129,12 +161,12 @@ function CreateProdModal({ isOpen, onClose, onFinish, selectedCont }) {
                 <input
                   className="input"
                   type="text"
-                  placeholder="HH:MM:SS"
+                  placeholder="HH:MM:SS:FF"
                   required
                   value={duracion}
                   onChange={(e) => setDuracion(e.target.value)}
                 />
-                <span>Duración Total (HH:MM:SS)*</span>
+                <span>Duración Total (HH:MM:SS:FF)*</span>
               </label>
             </div>
 
@@ -143,7 +175,7 @@ function CreateProdModal({ isOpen, onClose, onFinish, selectedCont }) {
                 CANCELAR
               </button>
               <button type="submit" className="submit">
-                GUARDAR
+                {config.mode=="create"? "GUARDAR": "ACTUALIZAR"}
               </button>
             </div>
           </form>

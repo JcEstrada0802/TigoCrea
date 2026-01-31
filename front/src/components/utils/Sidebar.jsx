@@ -7,6 +7,7 @@ import axios from 'axios';
 import Logo from '../../assets/Logo.png';
 import { useAuth } from '../authComponents/UseAuth';
 
+
 const SidebarContext = createContext();
 
 const CalendarIcon = (
@@ -122,7 +123,6 @@ export default function Sidebar() {
           navigate('/login');
       }
     };
-    
     useEffect(()=>{
       const fetchUser = async() =>{
         const token = localStorage.getItem('token');
@@ -154,8 +154,13 @@ export default function Sidebar() {
 
                 <SidebarContext.Provider value={{ isExpanded }}>
                     <ul className="flex-1 px-3">
-                        <SidebarItem icon={CatalogIcon} text="Catálogo" to="/catalogo" />
-                        <SidebarItem icon={CalendarIcon} text="Programación" to="/programacion" />
+                        {/* CAMBIAR ESTO PARA QUE SOLO LO VEAN LOS Q VEN EL CATALOGO Y PROGRAMACION */}
+                        {(user.is_superuser || user.groups?.some(group => ["AdLogger"].includes(group))) && (
+                            <>
+                            <SidebarItem icon={CatalogIcon} text="Catálogo" to="/catalogo" />
+                            <SidebarItem icon={CalendarIcon} text="Programación" to="/programacion" />
+                            </>
+                        )}
                         <SidebarItem icon={ReportingIcon} text="Reportería" to="/reporteria" />
                         <hr className="my-3" />
                         <SidebarItem icon={ProfileIcon} text="Profile" to="/perfil" />

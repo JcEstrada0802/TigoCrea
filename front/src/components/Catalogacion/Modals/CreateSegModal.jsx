@@ -12,76 +12,107 @@ import {
 } from '@heroicons/react/24/outline';
 import axios from 'axios';
 
-function CreateSegModal({ isOpen, onClose, onFinish, selectedProd }) {
+function CreateSegModal({ isOpen, onClose, onFinish, selectedProd, config }) {
   const apiUrl = import.meta.env.VITE_API_URL;
   const token = localStorage.getItem("token");
 
   // Estados basados en el modelo Segmento
   const [titulo, setTitulo] = useState('');
   const [idMedia, setIdMedia] = useState('');
-  const [duracion, setDuracion] = useState('00:00:00');
-  const [tcIn, setTcIn] = useState('00:00:00');
-  const [tcOut, setTcOut] = useState('00:00:00');
+  const [duracion, setDuracion] = useState('00:00:00:00');
+  const [tcIn, setTcIn] = useState('00:00:00:00');
+  const [tcOut, setTcOut] = useState('00:00:00:00');
   const [notas, setNotas] = useState('');
   
   // Estado para la lista de producciones y selección
   const [produccionesList, setProduccionesList] = useState([]);
   const [selectedProduccionId, setSelectedProduccionId] = useState('');
 
+
   useEffect(() => {
-    if (isOpen) {
-      // Reset de campos
-      setTitulo('');
-      setIdMedia('');
-      setDuracion('00:00:00');
-      setTcIn('00:00:00');
-      setTcOut('00:00:00');
-      setNotas('');
+  const prepareModal = async () => {
+    if (!isOpen) return;
 
-      const fetchData = async () => {
-        try {
-          // Obtenemos todas las producciones (pasando 0 como lo manejas en el backend)
-          const response = await axios.post(apiUrl + "/catalogo/getProducciones/", {
-            contenidos: [0]
-          }, {
-            headers: { Authorization: `Token ${token}` }
-          });
-          setProduccionesList(response.data);
-
-          // Si ya hay una producción seleccionada en el panel principal, la fijamos
-          if (selectedProd) {
-            setSelectedProduccionId(selectedProd);
-          } else {
-            setSelectedProduccionId('');
-          }
-        } catch (error) {
-          console.error("Error al cargar producciones", error);
-        }
-      };
-      fetchData();
-    }
-  }, [isOpen, selectedProd, apiUrl, token]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
     try {
-      await axios.post(apiUrl + "/catalogo/createSegmento/", {
-        titulo: titulo,
-        id_media: idMedia,
-        duracion: duracion,
-        tc_in: tcIn,
-        tc_out: tcOut,
-        notas: notas, // Opcional
-        produccion_id: selectedProduccionId // Enviamos el ID para el pk de la FK
+      // 1. CARGAR LISTA DE PRODUCCIONES PRIMERO
+      // Esto asegura que el select tenga opciones antes de setear el ID
+      const resProd = await axios.post(apiUrl + "/catalogo/getProducciones/", {
+        contenidos: [0]
       }, {
         headers: { Authorization: `Token ${token}` }
       });
-      onClose();
-      onFinish('success', 'Segmento creado con éxito', 'segmentos');
+      setProduccionesList(resProd.data);
+
+      // 2. LOGICA SEGÚN MODO
+      if (config.mode === "create") {
+        setTitulo('');
+        setIdMedia('');
+        setDuracion('00:00:00:00');
+        setTcIn('00:00:00:00');
+        setTcOut('00:00:00:00');
+        setNotas('');
+        setSelectedProduccionId(selectedProd || '');
+      } 
+      else if (config.mode === "edit") {
+        const response = await axios.post(apiUrl + "/catalogo/getSegmento/", {
+          segmentos: config.id 
+        }, {
+          headers: { Authorization: `Token ${token}` }
+        });
+
+        const seg = response.data[0];
+        if (seg) {
+          setTitulo(seg.titulo);
+          setIdMedia(seg.id_media);
+          setSelectedProduccionId(seg.produccion_id);
+          setNotas(seg.notas);
+          setDuracion(seg.duracion);
+          setTcIn(seg.tc_in);
+          setTcOut(seg.tc_out);
+        }
+      }
     } catch (error) {
+      console.error("Error al preparar el modal de segmentos:", error);
+    }
+  };
+
+  prepareModal();
+}, [isOpen, config.id, config.mode, selectedProd, apiUrl, token]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    const isUpdating = config.mode === "edit";
+    const url = isUpdating 
+      ? apiUrl + "/catalogo/updateSegmento/" 
+      : apiUrl + "/catalogo/createSegmento/";
+
+    try {
+      const payload = {
+        titulo: titulo,
+        id_media: idMedia,
+        duracion: duracion, // "HH:MM:SS"
+        tc_in: tcIn,       // "HH:MM:SS"
+        tc_out: tcOut,     // "HH:MM:SS"
+        produccion_id: selectedProduccionId,
+        notas: notas || ''
+      };
+
+      if (isUpdating) {
+        payload.id = config.id[0];
+      }
+
+      await axios.post(url, payload, {
+        headers: { Authorization: `Token ${token}` }
+      });
+
+      onClose();
+      onFinish('success', isUpdating ? 'Segmento actualizado' : 'Segmento creado', 'segmentos');
+      
+    } catch (error) {
+      const mensajeError = error.response?.data?.error || 'Error al guardar el segmento';
       console.error(error);
-      const errorMsg = error.response?.data?.error || 'Error al crear el segmento';
-      onFinish('error', errorMsg, 'segmentos');
+      onFinish('error', mensajeError, 'segmentos');
     }
   };
 
@@ -152,7 +183,7 @@ function CreateSegModal({ isOpen, onClose, onFinish, selectedProd }) {
                   value={tcIn}
                   onChange={(e) => setTcIn(e.target.value)}
                 />
-                <span>TC In (HH:MM:SS)*</span>
+                <span>TC In (HH:MM:SS:FF)*</span>
               </label>
 
               {/* TC Out */}
@@ -165,7 +196,7 @@ function CreateSegModal({ isOpen, onClose, onFinish, selectedProd }) {
                   value={tcOut}
                   onChange={(e) => setTcOut(e.target.value)}
                 />
-                <span>TC Out (HH:MM:SS)*</span>
+                <span>TC Out (HH:MM:SS:FF)*</span>
               </label>
 
               {/* Duración */}

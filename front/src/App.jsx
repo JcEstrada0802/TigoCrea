@@ -16,27 +16,13 @@ function App() {
       <Router>
         <Routes>
           <Route path='/Login' element={<Login/>}/>
+          <Route path='/' element={<ProtectedRoute><Layout /></ProtectedRoute>}>
           
-          {/* Rutas Protegidas (con sidebar) 
-              Usamos una ruta "padre" que renderiza el Layout.
-              ProtectedRoute envuelve el Layout UNA SOLA VEZ.
-          */}
-          <Route 
-            path='/' 
-            element={
-              <ProtectedRoute>
-                <Layout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<Navigate to="/catalogo" replace />} /> 
-            <Route path='catalogo' element={<CatalogacionMain/>}/> 
-            <Route path='programacion' element={<ProgramacionMain/>}/>   
-            <Route path='reporteria' element={<ReporteriaMain/>}/>  
-            <Route path='viewReport' element={<ViewReport/>}/>  
-
-            {/* Ruta para tests */}
-            <Route path='test' element={<CreateCatModal isOpen={true}/>}/>  
+          <Route index element={<Navigate to="/catalogo" replace />} /> 
+          <Route path='catalogo' element={<ProtectedRoute requiredGroup={['AdLogger']}><CatalogacionMain/></ProtectedRoute>}/> 
+          <Route path='programacion' element={<ProtectedRoute requiredGroup={['AdLogger']}><ProgramacionMain/></ProtectedRoute>}/>   
+          <Route path='reporteria' element={<ReporteriaMain/>}/>  
+          <Route path='viewReport' element={<ViewReport/>}/>  
 
           </Route>
 

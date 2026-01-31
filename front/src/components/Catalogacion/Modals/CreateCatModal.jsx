@@ -4,45 +4,75 @@ import { TagIcon, IdentificationIcon, Bars3BottomLeftIcon } from '@heroicons/rea
 import { SwatchIcon } from '@heroicons/react/24/solid';
 import axios from 'axios';
 
-function CreateCatModal({ isOpen, onClose, onFinish, mode }) {
+function CreateCatModal({ isOpen, onClose, onFinish, config}) {
   const apiUrl = import.meta.env.VITE_API_URL;
   const token = localStorage.getItem("token");
+  
 
   const [nombre, setNombre] = useState('');
   const [idValue, setIdValue] = useState('');
   const [color, setColor] = useState('#2563EB'); 
   const [tipo, setTipo] = useState('');
 
+  const fetchData = async() =>{
+    try{
+      const categoria = await axios.post(apiUrl + "/catalogo/getCategorias/",{
+          categorias: config.id
+        },{
+          headers: {
+              Authorization: `Token ${token}`
+            }
+        })
+      const cat = categoria.data[0]
+      setNombre(cat.nombre);
+      setIdValue(cat.id_cat);
+      setColor(cat.color);
+      setTipo(cat.tipo);
+    }catch{
+      console.log("Seleccionar una Categoria para editar por favor.")
+    }
+  }
+
   // Resetear el formulario cuando se abre
   useEffect(() => {
-    if (isOpen) {
-      setNombre('');
-      setIdValue('');
-      setColor('#2563EB');
-      setTipo('');
-    }
+    if (isOpen){
+      if (config.mode=="create") {
+        setNombre('');
+        setIdValue('');
+        setColor('#2563EB');
+        setTipo('');
+      }else{
+        fetchData();
+      }
+    } 
     
-  }, [isOpen]);
+  }, [isOpen, config.mode]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const isUpdating = config.mode !== 'create';
+    
+    // Si actualizas, usa el endpoint de update, si no, el de create
+    const url = isUpdating 
+      ? `${apiUrl}/catalogo/updateCategoria/` 
+      : `${apiUrl}/catalogo/createCategoria/`;
+
     try {
-      const response = await axios.post(apiUrl + "/catalogo/createCategoria/", {
+      const response = await axios.post(url, {
+        id: config.id[0], // Enviamos el ID original para que el backend sepa cuál editar
         nombre: nombre,
         codigo: idValue,
         color: color,
         tipo: tipo
       }, {
-        headers: {
-          Authorization: `Token ${token}`
-        }
+        headers: { Authorization: `Token ${token}` }
       });
+
       onClose();
-      onFinish('success', 'Creación exitosa', 'categorias')
+      onFinish('success', isUpdating ? 'Actualizado' : 'Creado', 'categorias');
     } catch (error) {
-      console.log(error);
-      onClose();
-      onFinish('error', 'Error al Crear la categoría', 'categorias');
+      const mensajeError = error.response?.data?.error || 'Error inesperado en la operación';
+      onFinish('error', mensajeError, 'categorias');
     }
   };
 
@@ -120,7 +150,7 @@ function CreateCatModal({ isOpen, onClose, onFinish, mode }) {
                 CANCELAR
               </button>
               <button type="submit" className="submit">
-                {mode=='create'? 'CREAR':'ACTUALIZAR'}
+                {config.mode=='create'? 'CREAR':'ACTUALIZAR'}
               </button>
             </div>
 

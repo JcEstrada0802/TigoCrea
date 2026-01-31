@@ -10,10 +10,9 @@ import {
 } from '@heroicons/react/24/outline';
 import axios from 'axios';
 
-function CreateContModal({ isOpen, onClose, onFinish, selectedCat }) {
+function CreateContModal({ isOpen, onClose, onFinish, selectedCat, config }) {
   const apiUrl = import.meta.env.VITE_API_URL;
   const token = localStorage.getItem("token");
-
   // Estados basados estrictamente en el modelo Contenido
   const [nombre, setNombre] = useState('');
   const [idCont, setIdCont] = useState('');
@@ -23,45 +22,90 @@ function CreateContModal({ isOpen, onClose, onFinish, selectedCat }) {
   const [categoriasList, setCategoriasList] = useState([]);
 
   useEffect(() => {
-    if (isOpen) {
-      setNombre('');
-      setIdCont('');
-      setCategoria(selectedCat || '');
-      setOrdenPauta('');
-      setNotas('');
+    const prepareModal = async () => {
+      if (!isOpen) return;
 
-      const fetchCategorias = async () => {
-        try {
-          const response = await axios.get(apiUrl + "/catalogo/getCategorias/", {
+      try {
+        // 1. CARGAR SIEMPRE LA LISTA DE CATEGORÍAS PRIMERO
+        // Esto es vital para que el <select> tenga las opciones listas
+        const catResponse = await axios.post(apiUrl + "/catalogo/getCategorias/", {
+          categorias: [0]
+        }, {
+          headers: { Authorization: `Token ${token}` }
+        });
+        setCategoriasList(catResponse.data || []);
+
+        // 2. LÓGICA SEGÚN EL MODO
+        if (config.mode === "create") {
+          setNombre('');
+          setIdCont('');
+          setCategoria(selectedCat || ''); // Usamos la categoría preseleccionada si existe
+          setOrdenPauta('');
+          setNotas('');
+        } 
+        else if (config.mode === "edit") {
+          // Llamamos al contenido específico
+          const response = await axios.post(apiUrl + "/catalogo/getContenido/", {
+            contenidos: config.id
+          }, {
             headers: { Authorization: `Token ${token}` }
           });
-          setCategoriasList(response.data);
-        } catch (error) {
-          console.error("Error al cargar categorías", error);
-          setCategoriasList([]);
+
+          const cont = response.data[0];
+          if (cont) {
+            setNombre(cont.nombre || '');
+            setIdCont(cont.id_cont || '');
+            // Ahora que categoriasList ya tiene datos, esto sí funcionará:
+            setCategoria(cont.id_categoria); 
+            setOrdenPauta(cont.orden_pauta || '');
+            setNotas(cont.notas || '');
+          }
         }
-      };
-      fetchCategorias();
-    }
-  }, [isOpen, apiUrl, token]); 
+      } catch (error) {
+        console.error("Error al preparar el modal de contenido:", error);
+      }
+    };
+
+    prepareModal();
+  }, [isOpen, config.id, config.mode, selectedCat]); // Agregamos las dependencias necesarias 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    const isUpdating = config.mode === "edit";
+    const url = isUpdating 
+      ? apiUrl + "/catalogo/updateContenido/" 
+      : apiUrl + "/catalogo/createContenido/";
+
     try {
-      await axios.post(apiUrl + "/catalogo/createContenido/", {
+      // 2. Armamos el payload
+      const payload = {
         nombre: nombre,
         id_cont: idCont,
         categoria: categoria, // ID de la Foreign Key
         orden_pauta: ordenPauta,
         notas: notas
-      }, {
+      };
+
+      // 3. Si es edición, incluimos el ID que Django necesita para filtrar
+      if (isUpdating) {
+        payload.id = config.id[0];
+      }
+
+      await axios.post(url, payload, {
         headers: { Authorization: `Token ${token}` }
       });
+
       onClose();
-      onFinish('success', 'Contenido creado con éxito', 'contenidos');
+      // 4. Mensaje de éxito dinámico
+      onFinish('success', isUpdating ? 'Contenido actualizado' : 'Contenido creado', 'contenidos');
+      
     } catch (error) {
-      console.log(error);
-      onFinish('error', 'Error al crear el contenido', 'contenidos');
+      // 5. Capturamos el error real enviado por Django (ej: "Ya existe este identificador")
+      const mensajeError = error.response?.data?.error || 'Error en la operación de contenidos';
+      
+      console.error(error);
+      onFinish('error', mensajeError, 'contenidos');
     }
   };
 
@@ -151,7 +195,7 @@ function CreateContModal({ isOpen, onClose, onFinish, selectedCat }) {
                 CANCELAR
               </button>
               <button type="submit" className="submit">
-                GUARDAR
+                {config.mode=="create"? "GUARDAR":"ACTUALIZAR"}
               </button>
             </div>
           </form>

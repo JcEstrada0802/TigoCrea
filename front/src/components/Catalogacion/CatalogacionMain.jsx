@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/solid';
 import CreateCatModal from './Modals/CreateCatModal';
 import CreateContModal from './Modals/CreateContModal';
 import CreateProdModal from './Modals/CreateProdModal';
@@ -9,81 +8,7 @@ import axios from 'axios';
 import Alert from '../utils/Alert';
 import { useSelection } from './Hooks/UseSelection';
 import { useAuth } from '../authComponents/UseAuth';
-
-
-
-function ColumnaPanel({ title, items, onAdd, onEdit, onDelete, onSelect}) {
-  return (
-    <div className="flex flex-col h-full w-full">
-      {/* Título de la Columna */}
-      <h3 className="text-center text-sm font-bold text-indigo-900 tracking-wider mb-2 uppercase">
-        {title}
-      </h3>
-
-      {/* Contenedor de la Caja */}
-      <div className="border-2 border-indigo-900 rounded-lg flex flex-col h-full max-h-[80vh] bg-gray-50 shadow-sm">
-        {/* Barra de Iconos */}
-        <div className="flex justify-end items-center space-x-2 p-2 border-b !border-gray-300">
-          <button 
-            onClick={onAdd} 
-            className="p-1.5 bg-blue-500 text-gray rounded-full hover:bg-blue-600 transition-colors"
-            aria-label="Agregar"
-          >
-            <PlusIcon className="h-4 w-4" /> 
-          </button>
-          <button 
-            onClick={onEdit} 
-            className="p-1.5 bg-blue-500 text-gray rounded-full hover:bg-blue-600 transition-colors"
-            aria-label="Editar"
-          >
-            <PencilIcon className="h-4 w-4" />
-          </button>
-          <button 
-            onClick={onDelete} 
-            className="p-1.5 bg-blue-500 text-gray rounded-full hover:bg-blue-600 transition-colors"
-            aria-label="Eliminar"
-          >
-            <TrashIcon className="h-4 w-4" />
-          </button>
-        </div>
-
-        {/* Lista de Contenido (Scrollable) */}
-        <div className="flex-grow overflow-y-auto p-3">
-          {items.length === 0 ? (
-            <p className="text-gray-400 text-sm text-center pt-4">No hay contenido</p>
-          ) : (
-            <ul className="space-y-2">
-              {items.map((item) => (
-                <li key={item.id} className="flex items-center space-x-2 p-1 rounded hover:bg-gray-100">
-                  <input
-                    type="checkbox"
-                    id={`${title}-${item.id}`}
-                    onChange={(e) => {
-                      onSelect(item.id, e.target.checked); 
-                    }}
-                    className="h-4 w-4 rounded text-blue-600 border-gray-300 focus:ring-blue-500"
-                  />
-                  <div
-                    className="w-8 h-4 rounded-sm border border-gray-300"
-                    style={{ backgroundColor: item.color }}
-                    title={item.color}
-                  ></div>
-                  <label 
-                    htmlFor={`${title}-${item.id}`} 
-                    className="text-sm text-indigo-900 select-none cursor-pointer"
-                  >
-                    {item.label}
-                  </label>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-      </div>
-    </div>
-  );
-}
+import ColumnaPanel from './utils/ColumnaPanel';
 
 // --- COMPONENTE PRINCIPAL (LAYOUT) ---
 export default function PanelPrincipal() {
@@ -114,18 +39,27 @@ export default function PanelPrincipal() {
     { title: 'SEGMENTACIÓN', items: [], addFunc: setShowSegModal },
   ]);
 
-  // Estados de Selección
+  // ------------- ESTADO PARA MANEJAR LA SELECCIÓn DE SECCIONES -------------
   const [selectedCategorias, toggleCategory, setSelectedCategorys] = useSelection();
   const [selectedContenidos, toggleContenido, setSelectedContenidos] = useSelection();
   const [selectedProducciones, toggleProduccion, setSelectedProducciones] = useSelection();
   const [selectedSegmentos, toggleSegmento, setSelectedSegmentos] = useSelection();
+  // -------------------------------------------------------------------------
 
-  // Estado para Manejar la eliminación de secciones
+  // ------------ ESTADO PARA MANEJAR LA ELIMINACIÓN DE SECCIONES ------------
   const [deleteModalConfig, setDeleteModalConfig] = useState({ 
     open: false, 
     seccion: '', 
     items: [] 
   });
+  // -------------------------------------------------------------------------
+
+  // -------------- ESTADO PARA MANEJAR LA EDICIÓN DE SECCIONES --------------
+  const [editModalConfig, setEditModalConfig] = useState({ 
+    mode: '', 
+    id: [0] 
+  });
+  // -------------------------------------------------------------------------
 
   // ------------------------- LIMPIEZA DE SELECTEDS -------------------------
   useEffect(() => {
@@ -144,10 +78,13 @@ export default function PanelPrincipal() {
   }, [segmentos]);
   // -------------------------------------------------------------------------
 
+  // -------------------------- FETCH DE CONTENIDOS --------------------------
   // Fetchear Categorias
   const fetchCategorias = async () => {
       try{
-        const response = await axios.get(apiUrl+'/catalogo/getCategorias/', {
+        const response = await axios.post(apiUrl+'/catalogo/getCategorias/', {
+          categorias:[0]
+        },{
           headers: { Authorization: `Token ${token}` }
         });
         const formattedCategorias = response.data.map(cat => ({
@@ -159,7 +96,7 @@ export default function PanelPrincipal() {
       }catch(e){
         console.log(e);
       }
-    }
+  }
   
   // Fetchear Contenidos
   const fetchContenidos = async () => {
@@ -222,10 +159,11 @@ export default function PanelPrincipal() {
 
     }
   }
+  // -------------------------------------------------------------------------
+
 
   // -------------------- ELIMINAR SECCIONES DEL CATALOGO --------------------
   const onDelete = (seccion, listaCompleta, idsSeleccionados) =>{
-    console.log(seccion,": ", idsSeleccionados)
     const items = listaCompleta.filter(i => idsSeleccionados.includes(i.id));
     if (items.length === 0) return; // O mandar un alert de "Seleccioná algo pa"
     
@@ -244,7 +182,8 @@ export default function PanelPrincipal() {
 
     try {
       await axios.post(`${apiUrl}${endpoints[seccion]}`, 
-        { ids: idsAEliminar }, 
+        { seccion: seccion,
+          ids: idsAEliminar, }, 
         { headers: { Authorization: `Token ${token}` } }
       );
       setDeleteModalConfig({ ...deleteModalConfig, open: false });
@@ -264,6 +203,47 @@ export default function PanelPrincipal() {
     if (seccion === 'segmentos') setSelectedSegmentos([]);
   };
   // -------------------------------------------------------------------------
+
+  // --------------------- EDITAR SECCIONES DEL CATALOGO ---------------------
+  const onOpen = (mode, seccion) =>{
+    try {
+      const seleccionMap = {
+        "categoria": selectedCategorias,
+        "contenido": selectedContenidos,
+        "produccion": selectedProducciones,
+        "segmento": selectedSegmentos
+      };
+
+      const modalMap = {
+        "categoria": setShowCatModal,
+        "contenido": setShowContModal,
+        "produccion": setShowProdModal,
+        "segmento": setShowSegModal
+      };
+
+      const listaSeleccionada = seleccionMap[seccion] || [];
+      const idParaEditar = listaSeleccionada.at(-1);
+
+      if (!idParaEditar && mode === "edit") {
+        console.warn(`No hay ningún item seleccionado en ${seccion} para editar.`);
+        return;
+      }
+
+      setEditModalConfig({ 
+        mode: mode, 
+        id: [idParaEditar] 
+      });
+      
+      if (modalMap[seccion]) {
+        modalMap[seccion](true);
+      }
+    } catch (error) {
+      console.error(`Error al abrir el modal de ${seccion}:`, error);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+
 
   // Fetchear Categorias
   useEffect(() => {
@@ -302,10 +282,34 @@ export default function PanelPrincipal() {
 
   useEffect(() => {
       setColumnas([
-        { title: 'CATEGORÍA', items: categorias, addFunc: setShowCatModal, selFunc:  toggleCategory, delFunc: () => {onDelete('categorias', categorias, selectedCategorias)}},
-        { title: 'CONTENIDO', items: contenidos, addFunc: setShowContModal, selFunc: toggleContenido, delFunc: () => {onDelete('contenidos', contenidos, selectedContenidos)}},
-        { title: 'PRODUCCIÓN', items: producciones, addFunc: setShowProdModal, selFunc: toggleProduccion, delFunc: () => {onDelete('producciones', producciones, selectedProducciones)}},
-        { title: 'SEGMENTACIÓN', items: segmentos, addFunc: setShowSegModal, selFunc: toggleSegmento, delFunc: () => {onDelete('segmentos', segmentos, selectedSegmentos)}},
+        { 
+          title: 'CATEGORÍA', 
+          items: categorias, 
+          addFunc: () => {onOpen("create","categoria")}, 
+          onEdit: () => {onOpen("edit","categoria")}, 
+          selFunc:  toggleCategory, 
+          delFunc: () => {onDelete('categorias', categorias, selectedCategorias)}},
+        { 
+          title: 'CONTENIDO', 
+          items: contenidos, 
+          addFunc: () => {onOpen("create","contenido")}, 
+          onEdit: () => {onOpen("edit","contenido")}, 
+          selFunc: toggleContenido, 
+          delFunc: () => {onDelete('contenidos', contenidos, selectedContenidos)}},
+        { 
+          title: 'PRODUCCIÓN', 
+          items: producciones, 
+          addFunc: () => {onOpen("create","produccion")}, 
+          onEdit: () => {onOpen("edit","produccion")}, 
+          selFunc: toggleProduccion, 
+          delFunc: () => {onDelete('producciones', producciones, selectedProducciones)}},
+        { 
+          title: 'SEGMENTACIÓN', 
+          items: segmentos, 
+          addFunc: () => {onOpen("create","segmento")}, 
+          onEdit: () => {onOpen("edit","segmento")}, 
+          selFunc: toggleSegmento, 
+          delFunc: () => {onDelete('segmentos', segmentos, selectedSegmentos)}},
       ]);
   }, [categorias, contenidos, producciones, segmentos, selectedCategorias, selectedContenidos, selectedProducciones, selectedSegmentos]);
 
@@ -339,15 +343,16 @@ export default function PanelPrincipal() {
             title={col.title} 
             items={col.items} 
             onAdd={col.addFunc}
+            onEdit={col.onEdit}
             onSelect={col.selFunc}
             onDelete={col.delFunc}
           />
         ))}
       </div>
-      <CreateCatModal isOpen={showCatModal} onClose={() => cerrar(setShowCatModal)} onFinish={handleTerminate} mode={'create'}/>
-      <CreateContModal isOpen={showContModal} onClose={() => cerrar(setShowContModal)} onFinish={handleTerminate} selectedCat={selectedCategorias.at(-1)}/>
-      <CreateProdModal isOpen={showProdModal} onClose={() => cerrar(setShowProdModal)} onFinish={handleTerminate} selectedCont={selectedContenidos.at(-1)}/>
-      <CreateSegModal isOpen={showSegModal} onClose={() => cerrar(setShowSegModal)} onFinish={handleTerminate} selectedProd={selectedProducciones.at(-1)}/>
+      <CreateCatModal isOpen={showCatModal} onClose={() => cerrar(setShowCatModal)} onFinish={handleTerminate} config={editModalConfig}/>
+      <CreateContModal isOpen={showContModal} onClose={() => cerrar(setShowContModal)} onFinish={handleTerminate} selectedCat={selectedCategorias.at(-1)} config={editModalConfig}/>
+      <CreateProdModal isOpen={showProdModal} onClose={() => cerrar(setShowProdModal)} onFinish={handleTerminate} selectedCont={selectedContenidos.at(-1)} config={editModalConfig}/>
+      <CreateSegModal isOpen={showSegModal} onClose={() => cerrar(setShowSegModal)} onFinish={handleTerminate} selectedProd={selectedProducciones.at(-1)} config={editModalConfig}/>
       <DeleteConfirmModal 
         isOpen={deleteModalConfig.open} 
         onClose={() => setDeleteModalConfig({ ...deleteModalConfig, open: false })} 
