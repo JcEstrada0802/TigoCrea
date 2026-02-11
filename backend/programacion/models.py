@@ -50,3 +50,46 @@ class Bloque(models.Model):
         verbose_name = "Bloque"
         verbose_name_plural = "Bloques"
         ordering = ['nombre']
+
+class Template(models.Model):
+    nombre = models.CharField(
+        max_length=100, 
+        verbose_name="Nombre de la Plantilla"
+    )
+    fecha_de_creacion = models.DateTimeField(
+        auto_now_add=True, 
+        verbose_name="Fecha de Creación"
+    )
+    # Almacena el array de eventos limpio que obtenemos de FullCalendar
+    eventos = models.JSONField(
+        verbose_name="Contenido de la Plantilla",
+        help_text="Array de objetos JSON con la data de los bloques"
+    )
+
+    def __str__(self):
+        return f"{self.nombre} - {self.fecha_de_creacion.strftime('%d/%m/%Y')}"
+
+    class Meta:
+        verbose_name = "Plantilla"
+        verbose_name_plural = "Plantillas"
+        ordering = ['-fecha_de_creacion']
+
+class Calendario(models.Model):
+    nombre = models.CharField(max_length=100) # Ej: "Tigo Sports 1"
+    slug = models.SlugField(unique=True)     # Ej: "canal-1"
+
+    def __str__(self):
+        return self.nombre
+    
+class Evento(models.Model):
+    calendario = models.ForeignKey(Calendario, on_delete=models.CASCADE, related_name='eventos')
+    title = models.CharField(max_length=200)
+    start = models.DateTimeField()
+    end = models.DateTimeField()
+    background_color = models.CharField(max_length=7, default='#001EB4')
+    
+    # Aquí guardamos el objeto con: categoria, contenido, produccion, etc.
+    extended_props = models.JSONField(default=dict, blank=True)
+
+    def __str__(self):
+        return f"{self.title} - {self.calendario.nombre}"

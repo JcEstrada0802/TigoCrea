@@ -1,0 +1,215 @@
+/* ==========================================================================
+   CONTENEDOR PRINCIPAL (ESTILO TIGO)
+   ========================================================================== */
+.block-manager {
+  width: 100%;
+  height: 100%;
+  background: #ffffff;
+  border-radius: 20px !important;
+  border: 1px solid #f0f0f0 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* ==========================================================================
+   HEADER Y BÚSQUEDA
+   ========================================================================== */
+.manager-header {
+  padding: 20px;
+  background: #ffffff;
+  border-bottom: 1px solid #f8f9fa;
+}
+
+.manager-header h3 {
+  color: #001EB4;
+  font-size: 1.1rem;
+  margin-bottom: 12px;
+  font-weight: 700;
+  margin-top: 0;
+}
+
+.search-container {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.search-bar {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid #eee;
+  background: #fcfdfe;
+  font-size: 0.85rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.search-bar:focus {
+  border-color: #44C8F5;
+}
+
+/* Botón "+" Principal (Nueva Categoría) */
+.add-button {
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  border-radius: 12px !important;
+  border: none !important;
+  background-color: #001EB4 !important;
+  color: white !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  font-size: 1.5rem !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 4px 10px rgba(0, 30, 180, 0.1);
+  padding: 0 !important;
+}
+
+.add-button:hover {
+  background-color: #44C8F5 !important;
+  transform: scale(1.05);
+}
+
+/* ==========================================================================
+   ÁRBOL DE CATEGORÍAS (CARPETAS)
+   ========================================================================== */
+.categories-tree {
+  flex: 1;
+  overflow-y: auto;
+  padding: 15px;
+}
+
+.category-item-container {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 8px 12px;
+  border-radius: 10px;
+  transition: background 0.2s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.category-item-container:hover {
+  background: #f0f4ff;
+}
+
+.category-main-click {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  cursor: pointer;
+}
+
+.folder-icon {
+  margin-right: 10px;
+  color: #001EB4;
+  display: flex;
+  align-items: center;
+}
+
+.category-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+}
+
+/* Acciones a la derecha de la carpeta */
+.category-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.color-square {
+  width: 12px !important;
+  height: 12px !important;
+  border-radius: 3px !important;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.1);
+}
+
+/* Botón "+" pequeño de cada categoría */
+.add-block-btn {
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  border-radius: 6px !important;
+  border: none !important;
+  background-color: #eef2ff !important;
+  color: #001EB4 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  padding: 0 !important;
+}
+
+.add-block-btn:hover {
+  background-color: #001EB4 !important;
+  color: white !important;
+  transform: scale(1.1);
+}
+
+/* ==========================================================================
+   LISTA DE BLOQUES (DRAGGABLES)
+   ========================================================================== */
+.blocks-list {
+  margin-left: 20px;
+  padding-left: 10px;
+  border-left: 2px solid #f0f0f0;
+  margin-bottom: 15px;
+}
+
+.draggable-block {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  margin: 8px 0;
+  background: #ffffff;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  cursor: grab;
+  transition: all 0.2s;
+}
+
+.draggable-block:hover {
+  border-color: #44C8F5;
+  box-shadow: 0 4px 12px rgba(0, 30, 180, 0.05);
+  transform: translateY(-1px);
+}
+
+.draggable-block:active {
+  cursor: grabbing;
+}
+
+.block-drag-handle {
+  color: #ccc;
+  margin-right: 12px;
+  font-size: 1rem;
+}
+
+.block-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.block-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #444;
+}
+
+.block-duration {
+  font-size: 0.75rem;
+  color: #001EB4;
+  font-weight: 500;
+  margin-top: 2px;
+}
