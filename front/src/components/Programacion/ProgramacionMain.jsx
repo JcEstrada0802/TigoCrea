@@ -35,8 +35,10 @@ function ProgramacionMain() {
   const ZOOM_LEVELS = ["01:00:00", "00:30:00", "00:15:00", "00:05:00"];
   const [CalendarViews, setCalendarViews] = useState(1);
 
-  // PORTAPAPELES UNIVERSAL, COPY-PASTE ENTRE CALENDARIOS
+  // PORTAPAPELES UNIVERSAL, COPY-PASTE ENTRE CALENDARIOS E IMPORTACIONES
   const [universalCB, setUniversalCB] = useState(null);
+  const [importConfig, setImportConfig] = useState(null);
+  const [saveConfig, setSaveConfig] = useState(null);
 
   // ------------------ SETEAR CATEGORIAS Y BLOQUES ------------------
   const fetchCatalog = async() =>{
@@ -135,10 +137,20 @@ function ProgramacionMain() {
     });
   }
   // -------------- IMPORTACION/EXPORTACION DE TEMPLATES -------------
-  const ejecutarImportacion = (calendar, events) => {
-    console.log(calendar, events)
-    return
+  const ImportTemplate = (calendarId, events) => {
+    setUniversalCB(events)
+    setImportConfig({
+      calendarId: calendarId,
+      trigger: Date.now() 
+    });
+  }
 
+  const SaveTemplate = (calendarId, templateName) => {
+    setSaveConfig({
+      calendarId: calendarId,
+      templateName: templateName,
+      trigger: Date.now()
+    })
   }
 
   return (
@@ -152,7 +164,7 @@ function ProgramacionMain() {
         
         {/* Contenedor del Manager */}
         <aside style={{ width: '320px', display: 'flex', flexDirection: 'column', height: '95vh', padding: '10px', boxSizing: 'border-box'}}>
-          <TemplateControls onConfirmImport={ejecutarImportacion}/>
+          <TemplateControls onConfirmImport={ImportTemplate} onConfirmExport={SaveTemplate}/>
           <div style={{ flexGrow: 1, overflow: 'hidden' }}>
             <BlockManager categorias={datos} createCat={handleAddClick} createBlock={handleCreateBlock}/>
           </div>
@@ -168,7 +180,14 @@ function ProgramacionMain() {
           {/* Renderizamos los calendarios según el estado */}
           {[...Array(CalendarViews === 3 ? 4 : CalendarViews)].map((_, index) => (
             <div key={index} className="min-h-0 min-w-0 bg-white rounded-xl shadow-inner border border-gray-200 overflow-hidden">
-              <CalendarioTigo id={`cal-${index}`} zoom={slotSize} clipboard={universalCB} setClipboard={setUniversalCB} isCompact={CalendarViews > 1} />
+              <CalendarioTigo 
+                id={`cal-${index}`} 
+                zoom={slotSize} 
+                clipboard={universalCB} 
+                setClipboard={setUniversalCB} 
+                isCompact={CalendarViews > 1} 
+                importConfig={importConfig}
+                saveConfig ={saveConfig}/>
             </div>
           ))}
         </main>

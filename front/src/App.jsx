@@ -5,8 +5,7 @@ import Login from './components/authComponents/Login';
 import ReporteriaMain from './components/Reporteria/ReporteriaMain';
 import CatalogacionMain from './components/Catalogacion/CatalogacionMain';
 import ProgramacionMain from './components/Programacion/ProgramacionMain';
-import ViewReport from './components/Reporteria/ViewReport';
-import CreateCatModal from './components/Catalogacion/Modals/CreateCatModal';
+import PerfilMain from './components/Perfil/PerfilMain';
 import { AuthProvider } from './components/authComponents/AuthContext';
 import './index.css';
 
@@ -16,13 +15,13 @@ function App() {
       <Router>
         <Routes>
           <Route path='/Login' element={<Login/>}/>
-          <Route path='/' element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+          <Route path='/' element={<ProtectedRoute><Layout/></ProtectedRoute>}>
           
           <Route index element={<Navigate to="/catalogo" replace />} /> 
-          <Route path='catalogo' element={<ProtectedRoute requiredGroup={['AdLogger']}><CatalogacionMain/></ProtectedRoute>}/> 
-          <Route path='programacion' element={<ProtectedRoute requiredGroup={['AdLogger']}><ProgramacionMain/></ProtectedRoute>}/>   
-          <Route path='reporteria' element={<ReporteriaMain/>}/>  
-          <Route path='viewReport' element={<ViewReport/>}/>  
+          <Route path='catalogo' element={<ProtectedRoute allowedGroups={['AdLogger']}><CatalogacionMain/></ProtectedRoute>}/> 
+          <Route path='programacion' element={<ProtectedRoute allowedGroups={['AdLogger']}><ProgramacionMain/></ProtectedRoute>}/>   
+          <Route path='reporteria' element={<ProtectedRoute allowedGroups={['Viewer']}><ReporteriaMain/></ProtectedRoute>}/>
+          <Route path='perfil' element={<ProtectedRoute><PerfilMain/></ProtectedRoute>}/>  
 
           </Route>
 

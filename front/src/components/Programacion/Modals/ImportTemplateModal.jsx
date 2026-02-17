@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FaTimes, FaDownload, FaCalendarAlt, FaLayerGroup } from 'react-icons/fa';
 import axios from 'axios';
 
-const ImportTemplateModal = ({ isVisible, onClose, onConfirm, position }) => {
+const ImportTemplateModal = ({ isVisible, onClose, onSave, position }) => {
   const [selectedCalendar, setSelectedCalendar] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [calendars, setCalendars] = useState([]);
@@ -10,10 +10,21 @@ const ImportTemplateModal = ({ isVisible, onClose, onConfirm, position }) => {
   
   const apiUrl = import.meta.env.VITE_API_URL;
   const token = localStorage.getItem('token');
+  const modalRef = useRef(null);
 
   // Carga de datos al abrir el modal
   useEffect(() => {
     if (!isVisible) return;
+
+    const handleClickOutside = (event) => {
+        if (modalRef.current && !modalRef.current.contains(event.target)) {
+            onClose();
+        }
+    };
+
+    const handleEsc = (event) => {
+            if (event.key === 'Escape') onClose();
+        };
 
     const fetchData = async () => {
       try {
@@ -31,6 +42,13 @@ const ImportTemplateModal = ({ isVisible, onClose, onConfirm, position }) => {
     };
 
     fetchData();
+    document.addEventListener('mousedown', handleClickOutside);
+    window.addEventListener('keydown', handleEsc);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('keydown', handleEsc);
+    };
   }, [isVisible, apiUrl, token]);
 
   if (!isVisible) return null;
@@ -45,7 +63,7 @@ const ImportTemplateModal = ({ isVisible, onClose, onConfirm, position }) => {
     
     if (plantilla) {
       // Enviamos el ID del calendario y el array de eventos al padre
-      onConfirm(selectedCalendar, plantilla.eventos);
+      onSave(selectedCalendar, plantilla.eventos);
       onClose(); 
     }
   };
@@ -55,20 +73,13 @@ const ImportTemplateModal = ({ isVisible, onClose, onConfirm, position }) => {
       
       {/* Contenedor del Modal Posicionado */}
       <div 
+        ref={modalRef}
         className="fixed bg-white w-full max-w-sm p-6 rounded-2xl shadow-2xl border border-gray-100 transform transition-all z-[100]"
         style={{
           top: position?.top || '20%',  
           left: position?.left || '20%', 
         }}
       >
-        {/* Botón Cerrar */}
-        <button 
-          onClick={onClose} 
-          className="absolute top-5 right-5 text-gray-300 hover:text-red-500 transition-colors"
-        >
-          <FaTimes size={16} />
-        </button>
-
         {/* Header */}
         <div className="mb-5">
           <h2 className="text-md font-bold text-[#001EB4] flex items-center gap-2">
@@ -119,9 +130,9 @@ const ImportTemplateModal = ({ isVisible, onClose, onConfirm, position }) => {
         {/* Botón Confirmar */}
         <button 
           onClick={handleImportClick}
-          className="w-full mt-6 !bg-[#001EB4] text-white font-bold py-3 rounded-2xl hover:!bg-[#44C8F5] transition-all shadow-md shadow-blue-100 flex items-center justify-center gap-2 text-[11px] active:scale-95 uppercase tracking-widest"
+          className="w-full mt-6 !bg-[#001EB4] text-white font-bold py-3 rounded-2xl hover:!bg-[#44C8F5] transition-all shadow-md shadow-blue-100 flex items-center justify-center gap-2 text-[11px] active:scale-95 tracking-widest"
         >
-          <FaDownload /> Confirmar
+          <FaDownload /> Importar
         </button>
       </div>
     </div>

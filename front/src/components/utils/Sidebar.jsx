@@ -154,14 +154,17 @@ export default function Sidebar() {
 
                 <SidebarContext.Provider value={{ isExpanded }}>
                     <ul className="flex-1 px-3">
-                        {/* CAMBIAR ESTO PARA QUE SOLO LO VEAN LOS Q VEN EL CATALOGO Y PROGRAMACION */}
-                        {(user.is_superuser || user.groups?.some(group => ["AdLogger"].includes(group))) && (
+                        {/* Solo lo ven los AdLoggers */}
+                        {(user?.is_superuser || user?.groups?.some(group => ["AdLogger"].includes(group))) && (
                             <>
                             <SidebarItem icon={CatalogIcon} text="Catálogo" to="/catalogo" />
                             <SidebarItem icon={CalendarIcon} text="Programación" to="/programacion" />
                             </>
                         )}
-                        <SidebarItem icon={ReportingIcon} text="Reportería" to="/reporteria" />
+                        {/* Solo lo ven los viewers */}
+                        {(user?.is_superuser || user?.groups?.some(group => ["Viewer"].includes(group))) && (
+                            <SidebarItem icon={ReportingIcon} text="Reportería" to="/reporteria" />
+                        )}
                         <hr className="my-3" />
                         <SidebarItem icon={ProfileIcon} text="Profile" to="/perfil" />
                     </ul>

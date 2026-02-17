@@ -9,12 +9,15 @@ import { bulkCreateEventsInDB, createEventInDB, bulkUpdateEventsInDB, updateEven
 import './Calendario.css';
 import axios from 'axios';
 
-const CalendarioTigo = ({ zoom, clipboard, setClipboard, isCompact }) => {
+let lastProcessedTrigger = null;
+let lastProcessedSaveTrigger = null;
+
+const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importConfig, saveConfig }) => {
   const calendarRef = useRef(null);
   const [contextMenu, setContextMenu] = useState(null); // { x, y, event }
   const [eventos, setEventos] = useState({});
 
-// ESTADOS PARA SELECCIONAR CALENDARIO
+  // ESTADOS PARA SELECCIONAR CALENDARIO
   const [selectedCalId, setSelectedCalId] = useState(1);
   const [availableCalendars, setAvailableCalendars] = useState([]); 
 
@@ -218,6 +221,85 @@ const CalendarioTigo = ({ zoom, clipboard, setClipboard, isCompact }) => {
     fetchEvents();
   }, [selectedCalId]);
   
+  // IMPORTAR PLANTILLA AL CALENDARIO
+  useEffect(() => {
+    if (importConfig && String(importConfig.calendarId) === String(selectedCalId) && importConfig.trigger !== lastProcessedTrigger) {
+      lastProcessedTrigger = importConfig.trigger;
+      console.log("Yo lo agarro primero (Instancia:", id, ")");
+      const calendarApi = calendarRef.current?.getApi();
+      if (calendarApi) {
+        handlePasteAction({ start: calendarApi.view.activeStart });
+      }
+    }
+  }, [importConfig, selectedCalId]);
+
+useEffect(() => {
+  if (saveConfig && 
+      String(saveConfig.calendarId) === String(selectedCalId) && 
+      saveConfig.trigger !== lastProcessedSaveTrigger) {
+    
+    // Bloqueamos para evitar doble guardado
+    lastProcessedSaveTrigger = saveConfig.trigger;
+
+    const ejecutarGuardado = async () => {
+      const calendarApi = calendarRef.current?.getApi();
+      if (!calendarApi) return;
+
+      const currentView = calendarApi.view;
+      const allEvents = calendarApi.getEvents();
+      if (allEvents.length === 0) {
+        alert("No hay eventos en esta semana para guardar como plantilla.");
+        return;
+      }
+
+      // Calcular el Lunes de la semana actual visible
+      const target = new Date(currentView.activeStart);
+      const day = target.getDay();
+      const diff = target.getDate() - day + (day === 0 ? -6 : 1);
+      const mondayStart = new Date(target.setDate(diff));
+      mondayStart.setHours(0, 0, 0, 0);
+
+      const sourceMondayTimestamp = mondayStart.getTime();
+
+      // Transformar eventos al formato estricto de Template
+      const templateData = {
+        type: "WEEK",
+        sourceMonday: sourceMondayTimestamp,
+        data: allEvents.map(ev => ({
+          title: ev.title,
+          duration: ev.end.getTime() - ev.start.getTime(),
+          offset: ev.start.getTime() - sourceMondayTimestamp,
+          backgroundColor: ev.backgroundColor,
+          extendedProps: {
+            blockId: ev.extendedProps?.blockId || null,
+            duracion_ff: ev.extendedProps?.duracion_ff || null
+          }
+        }))
+      };
+
+      // Envío a la DB
+      try {
+        const payload = {
+          nombre: saveConfig.templateName,
+          eventos: templateData
+        };
+        
+        await axios.post(`${apiUrl}/programacion/createTemplate/`, payload, {
+          headers: { Authorization: `Token ${token}` }
+        });
+        
+        alert(`Plantilla "${saveConfig.templateName}" guardada exitosamente.`);
+      } catch (e) {
+        console.error("Error al guardar plantilla:", e);
+        alert("Error al persistir la plantilla en el servidor.");
+        // Si falló, liberamos el trigger por si el usuario quiere reintentar
+        lastProcessedSaveTrigger = null; 
+      }
+    };
+
+    ejecutarGuardado();
+  }
+}, [saveConfig, selectedCalId]);
 
   return (
     <div className='calendar-container'>

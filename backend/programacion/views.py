@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from django.db import transaction
+from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
@@ -7,6 +8,7 @@ from rest_framework import status
 from .models import BloqueCategoria, Bloque, Template, Calendario, Evento
 from .serializers import *
 from catalogo.utils.timeToFrame import timecode_to_frames
+from backend.permissions import *
 
 # ------------------------------- CREACION DE CATBLOCKS -------------------------------
 @api_view(['POST'])
@@ -128,6 +130,39 @@ def getTemplates(request):
             {"error": f"Error al obtener plantillas: {str(e)}"}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+    
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def createTemplate(request):
+    try:
+        nombre = request.data.get('nombre')
+        eventos_json = request.data.get('eventos')
+
+        if not nombre or not eventos_json:
+            return Response(
+                {"error": "El nombre y los eventos son obligatorios."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Creamos el registro en la DB
+        # Django se encarga de convertir el dict de Python a JSONB en Postgres
+        nuevo_template = Template.objects.create(
+            nombre=nombre,
+            eventos=eventos_json,
+            fecha_de_creacion=timezone.now()
+        )
+
+        return Response({
+            "message": "Plantilla guardada exitosamente",
+            "id": nuevo_template.id
+        }, status=status.HTTP_201_CREATED)
+
+    except Exception as e:
+        print(f"Error al crear plantilla: {str(e)}")
+        return Response(
+            {"error": "Ocurrió un error interno en el servidor"}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 # ------------------------------ CATALOGO DE CALENDARS -----------------------------
 @api_view(['GET'])
@@ -187,6 +222,7 @@ def getEventsByCalendar(request):
     except Calendario.DoesNotExist:
         return Response({"error": "Calendario no encontrado"}, status=404)
 
+# ---------------------------- CREATE/COPY/PASTE EVENTOS ---------------------------
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def createEvent(request):
@@ -273,8 +309,7 @@ def updateEvent(request, pk):
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
-# --- ACTUALIZACIÓN MASIVA (Shift + Drag) ---
+# ---------------------- ACTUALIZACIÓN MASIVA (Shift + Drag) ----------------------
 @api_view(['PUT'])
 @permission_classes([IsAuthenticated])
 def bulkUpdate(request):

@@ -13,4 +13,5 @@ urlpatterns = [
     path('bulkSave/', bulkSave, name='bulkSave'),
     path('updateEvent/<int:pk>/', updateEvent, name='updateEvent'),
     path('bulkUpdate/', bulkUpdate, name='bulkUpdate'),
+    path('createTemplate/', createTemplate, name='createTemplate'),
 ]

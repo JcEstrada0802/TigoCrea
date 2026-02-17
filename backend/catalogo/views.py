@@ -6,6 +6,7 @@ from .models import Categoria, Contenido, Produccion, Segmento
 from django.db.models import Q
 from .utils.timeToFrame import timecode_to_frames, frames_to_timecode
 
+
 # ---------------------- CREATE DE SECCIONES ----------------------
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
@@ -263,6 +264,9 @@ def getContenidos(request):
             ).select_related('categoria').order_by('nombre')
         else:
             contenidos = Contenido.objects.all()
+
+        if not contenidos.exists():
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
         data = [
             {

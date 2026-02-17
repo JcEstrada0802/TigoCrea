@@ -3,11 +3,11 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from .models import BroadcastSystem, Reportes, AsRunLogFile, LogEntry
-from .permissions import IsSuperUser
 from rest_framework import status
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
 from .utils.report_export import build_report_data
+from backend.permissions import IsViewer
 
 # Prueba con Celery
 from .tasks import renderPDF
@@ -42,7 +42,7 @@ def getSystems(request):
     return Response(data)
 
 @api_view(['POST'])
-@permission_classes([IsAdminUser])  # Solo superuser puede crear reportes
+@permission_classes([IsAuthenticated & IsAdminUser])  # Solo superuser puede crear reportes
 def crearReporte(request):
     try:
         titulo = request.data.get('titulo')
@@ -73,7 +73,7 @@ def crearReporte(request):
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated & (IsViewer | IsAdminUser)])
 def getReports(request):
     try:
         reportes = Reportes.objects.all().order_by('id')
@@ -99,7 +99,7 @@ def logout(request):
     return Response({"message": "Sesión cerrada"}, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated]) 
+@permission_classes([IsAuthenticated & (IsViewer | IsAdminUser)]) 
 def getReport(request, report_id):
     try:
         reporte = get_object_or_404(Reportes, id=report_id)
@@ -147,7 +147,7 @@ def getReport(request, report_id):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated & IsAdminUser])
 def getReportDetail(request, report_id):
     try:
         reporte = get_object_or_404(Reportes, id=report_id)
@@ -169,7 +169,7 @@ def getReportDetail(request, report_id):
         return Response({"error": "Ocurrió un error al procesar la solicitud."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated & (IsViewer | IsAdminUser)])
 def exportReportPDF(request):
     try:
         logs = request.data.get('logs', [])
@@ -248,7 +248,7 @@ def getUserContext(request):
         return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['PUT'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated & IsAdminUser])
 def updateReport(request, report_id):
     try:
         # 1. Encontrar el reporte que se quiere editar usando el ID de la URL
@@ -272,7 +272,7 @@ def updateReport(request, report_id):
     return Response({'message': 'Reporte actualizado exitosamente'}, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated & (IsViewer | IsAdminUser)])
 def getReportStatus(request):
     try:
         task_id = request.query_params.get('taskId')
@@ -302,7 +302,7 @@ def getReportStatus(request):
         )
     
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated & (IsViewer | IsAdminUser)])
 def getReportPDF(request):
     try:
         title = request.query_params.get('titulo')

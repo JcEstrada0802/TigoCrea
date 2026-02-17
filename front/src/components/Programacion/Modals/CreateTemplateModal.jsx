@@ -1,8 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FaTimes, FaCheck, FaCalendarAlt } from 'react-icons/fa';
+import axios from 'axios';
 
 const CreateTemplateModal = ({ isVisible, onClose, onSave, position }) => {
+    const [selectedCalendar, setSelectedCalendar] = useState('');
+    const [calendars, setCalendars] = useState([]);
+
     const [templateName, setTemplateName] = useState('');
+    const apiUrl = import.meta.env.VITE_API_URL;
+    const token = localStorage.getItem('token');
     const modalRef = useRef(null);
 
     useEffect(() => {
@@ -17,10 +23,20 @@ const CreateTemplateModal = ({ isVisible, onClose, onSave, position }) => {
         const handleEsc = (event) => {
             if (event.key === 'Escape') onClose();
         };
-        
+
+        const fetchData = async() => {
+            try{
+                const calendarios = await axios.get(`${apiUrl}/programacion/getCalendars/`, {
+                    headers: {'Authorization': `Token ${token}`}
+                })
+                setCalendars(calendarios.data);
+            }catch(error){
+                console.log("Error cargando datos al modal, ", error)
+            }
+        };
+        fetchData();
         document.addEventListener('mousedown', handleClickOutside);
         window.addEventListener('keydown', handleEsc);
-
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
             window.removeEventListener('keydown', handleEsc);
@@ -31,7 +47,7 @@ const CreateTemplateModal = ({ isVisible, onClose, onSave, position }) => {
 
     const handleSaveClick = () => {
         if (!templateName.trim()) return alert("El nombre de la plantilla es obligatorio");
-        onSave(templateName);
+        onSave(selectedCalendar, templateName);
         setTemplateName(''); // Reset
         onClose();
     };
@@ -45,10 +61,6 @@ const CreateTemplateModal = ({ isVisible, onClose, onSave, position }) => {
                 left: position?.left || '20%', 
             }}
         >
-            {/* Botón Cerrar */}
-            <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors">
-                <FaTimes size={18} />
-            </button>
 
             {/* Header */}
             <div className="mb-5 flex items-start gap-3">
@@ -62,9 +74,9 @@ const CreateTemplateModal = ({ isVisible, onClose, onSave, position }) => {
             </div>
 
             {/* Formulario */}
-            <div className="space-y-5">
+            <div className="space-y-4">
                 <div>
-                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">
+                    <label className="flex items-center gap-2 text-[9px] font-black text-gray-400 mb-1.5 ml-1 tracking-tighter">
                         Nombre de la Plantilla
                     </label>
                     <input 
@@ -73,9 +85,25 @@ const CreateTemplateModal = ({ isVisible, onClose, onSave, position }) => {
                         placeholder="Ej. Semana Normal, Promo Tigo, Especial..."
                         value={templateName}
                         onChange={(e) => setTemplateName(e.target.value)}
-                        className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all text-sm font-medium"
+                        className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-2xl text-[11px] font-bold text-gray-600 focus:ring-2 focus:ring-blue-400 outline-none cursor-pointer"
                     />
                 </div>
+            </div>
+
+            <div>
+                <label className="flex items-center gap-2 text-[9px] font-black text-gray-400 mb-1.5 ml-1 tracking-tighter">
+                    <FaCalendarAlt className="text-blue-400" /> CANAL ORIGEN
+                </label>
+                <select 
+                    value={selectedCalendar}
+                    onChange={(e) => setSelectedCalendar(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-gray-50 border-none rounded-2xl text-[11px] font-bold text-gray-600 focus:ring-2 focus:ring-blue-400 outline-none cursor-pointer"
+                >
+                    <option value="">¿Desde qué canal?</option>
+                    {calendars.map(cal => (
+                    <option key={cal.id} value={cal.id}>{cal.name}</option>
+                    ))}
+                </select>
             </div>
 
             {/* Botón Acción */}
