@@ -3,8 +3,9 @@ import { Download, Save } from 'lucide-react';
 import { FaFilePdf } from 'react-icons/fa';
 import ImportTemplateModal from '../Modals/ImportTemplateModal';
 import CreateTemplateModal from '../Modals/CreateTemplateModal';
+import ExportGridModal from '../Modals/ExportGridModal';
 
-const TemplateControls = ({ onConfirmImport, onConfirmExport }) => {
+const TemplateControls = ({ onConfirmImport, onConfirmExport, onConfirmPDF }) => {
   const [showImport, setShowImport] = useState(false);
   const [showSave, setShowSave] = useState(false);
   const [showExport, setShowExport] = useState(false);
@@ -65,6 +66,13 @@ const TemplateControls = ({ onConfirmImport, onConfirmExport }) => {
         isVisible={showSave}
         onClose={()=>setShowSave(false)}
         onSave={onConfirmExport}
+        position={modalPos}
+      />
+
+      <ExportGridModal
+        isVisible={showExport}
+        onClose={()=>setShowExport(false)}
+        onExport={onConfirmPDF}
         position={modalPos}
       />
     </div>

@@ -3,23 +3,29 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
+import { exportGridToPDF } from '../utils/ExportGridPDF';
 import ContextMenu from '../Modals/ContextMenu';
+import EditBlockModal from '../Modals/EditBlockModal';
 import { copyBlock, copyDay, copyWeek, pasteItems } from '../utils/ClipboardLogic';
 import { bulkCreateEventsInDB, createEventInDB, bulkUpdateEventsInDB, updateEventInDB } from '../utils/EventService';
 import './Calendario.css';
 import axios from 'axios';
+import pollReportStatus from '../../utils/PollReportStatus';
 
 let lastProcessedTrigger = null;
 let lastProcessedSaveTrigger = null;
+let lastProcessedExportTrigger = null;
 
-const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importConfig, saveConfig }) => {
+const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importConfig, saveConfig, exportConfig }) => {
   const calendarRef = useRef(null);
   const [contextMenu, setContextMenu] = useState(null); // { x, y, event }
+  const [editModal, setEditModal] = useState(null);     // { x, y, event }
   const [eventos, setEventos] = useState({});
-
+  
   // ESTADOS PARA SELECCIONAR CALENDARIO
   const [selectedCalId, setSelectedCalId] = useState(1);
   const [availableCalendars, setAvailableCalendars] = useState([]); 
+  const selectedCalIdRef = useRef(selectedCalId);
 
   // DATOS DEL USUARIO
   const apiUrl = import.meta.env.VITE_API_URL;
@@ -231,75 +237,121 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
         handlePasteAction({ start: calendarApi.view.activeStart });
       }
     }
-  }, [importConfig, selectedCalId]);
+  }, [importConfig]);
 
-useEffect(() => {
-  if (saveConfig && 
-      String(saveConfig.calendarId) === String(selectedCalId) && 
-      saveConfig.trigger !== lastProcessedSaveTrigger) {
-    
-    // Bloqueamos para evitar doble guardado
-    lastProcessedSaveTrigger = saveConfig.trigger;
+  // EXPORTAR PLANTILLA DEL CALENDARIO
+  useEffect(() => {
+    if (saveConfig && 
+        String(saveConfig.calendarId) === String(selectedCalId) && 
+        saveConfig.trigger !== lastProcessedSaveTrigger) {
+      
+      // Bloqueamos para evitar doble guardado
+      lastProcessedSaveTrigger = saveConfig.trigger;
 
-    const ejecutarGuardado = async () => {
-      const calendarApi = calendarRef.current?.getApi();
-      if (!calendarApi) return;
+      const ejecutarGuardado = async () => {
+        const calendarApi = calendarRef.current?.getApi();
+        if (!calendarApi) return;
 
-      const currentView = calendarApi.view;
-      const allEvents = calendarApi.getEvents();
-      if (allEvents.length === 0) {
-        alert("No hay eventos en esta semana para guardar como plantilla.");
-        return;
-      }
+        const currentView = calendarApi.view;
+        const allEvents = calendarApi.getEvents();
+        if (allEvents.length === 0) {
+          alert("No hay eventos en esta semana para guardar como plantilla.");
+          return;
+        }
 
-      // Calcular el Lunes de la semana actual visible
-      const target = new Date(currentView.activeStart);
-      const day = target.getDay();
-      const diff = target.getDate() - day + (day === 0 ? -6 : 1);
-      const mondayStart = new Date(target.setDate(diff));
-      mondayStart.setHours(0, 0, 0, 0);
+        // Calcular el Lunes de la semana actual visible
+        const target = new Date(currentView.activeStart);
+        const day = target.getDay();
+        const diff = target.getDate() - day + (day === 0 ? -6 : 1);
+        const mondayStart = new Date(target.setDate(diff));
+        mondayStart.setHours(0, 0, 0, 0);
 
-      const sourceMondayTimestamp = mondayStart.getTime();
+        const sourceMondayTimestamp = mondayStart.getTime();
 
-      // Transformar eventos al formato estricto de Template
-      const templateData = {
-        type: "WEEK",
-        sourceMonday: sourceMondayTimestamp,
-        data: allEvents.map(ev => ({
-          title: ev.title,
-          duration: ev.end.getTime() - ev.start.getTime(),
-          offset: ev.start.getTime() - sourceMondayTimestamp,
-          backgroundColor: ev.backgroundColor,
-          extendedProps: {
-            blockId: ev.extendedProps?.blockId || null,
-            duracion_ff: ev.extendedProps?.duracion_ff || null
-          }
-        }))
+        // Transformar eventos al formato estricto de Template
+        const templateData = {
+          type: "WEEK",
+          sourceMonday: sourceMondayTimestamp,
+          data: allEvents.map(ev => ({
+            title: ev.title,
+            duration: ev.end.getTime() - ev.start.getTime(),
+            offset: ev.start.getTime() - sourceMondayTimestamp,
+            backgroundColor: ev.backgroundColor,
+            extendedProps: {
+              blockId: ev.extendedProps?.blockId || null,
+              duracion_ff: ev.extendedProps?.duracion_ff || null
+            }
+          }))
+        };
+
+        // Envío a la DB
+        try {
+          const payload = {
+            nombre: saveConfig.templateName,
+            eventos: templateData
+          };
+          
+          await axios.post(`${apiUrl}/programacion/createTemplate/`, payload, {
+            headers: { Authorization: `Token ${token}` }
+          });
+          
+          alert(`Plantilla "${saveConfig.templateName}" guardada exitosamente.`);
+        } catch (e) {
+          console.error("Error al guardar plantilla:", e);
+          alert("Error al persistir la plantilla en el servidor.");
+          // Si falló, liberamos el trigger por si el usuario quiere reintentar
+          lastProcessedSaveTrigger = null; 
+        }
       };
 
-      // Envío a la DB
-      try {
-        const payload = {
-          nombre: saveConfig.templateName,
-          eventos: templateData
-        };
-        
-        await axios.post(`${apiUrl}/programacion/createTemplate/`, payload, {
-          headers: { Authorization: `Token ${token}` }
-        });
-        
-        alert(`Plantilla "${saveConfig.templateName}" guardada exitosamente.`);
-      } catch (e) {
-        console.error("Error al guardar plantilla:", e);
-        alert("Error al persistir la plantilla en el servidor.");
-        // Si falló, liberamos el trigger por si el usuario quiere reintentar
-        lastProcessedSaveTrigger = null; 
-      }
-    };
+      ejecutarGuardado();
+    }
+  }, [saveConfig]);
 
-    ejecutarGuardado();
-  }
-}, [saveConfig, selectedCalId]);
+  // EXPORTAR PARRILLA A PDF
+  useEffect(() => {
+      selectedCalIdRef.current = selectedCalId;
+  }, [selectedCalId]);
+
+  useEffect(() => {
+      if (exportConfig && 
+          String(exportConfig.calendarId) === String(selectedCalIdRef.current) && 
+          exportConfig.trigger !== lastProcessedExportTrigger) {
+          lastProcessedExportTrigger = exportConfig.trigger;
+
+          const token = localStorage.getItem('token');
+          const filename = exportConfig.pdfName;
+          const ejecutarExportacion = async () => {
+              try {
+                  const task_id = await exportGridToPDF(selectedCalIdRef.current,filename,calendarRef);
+                  if (task_id) {
+                      // Iniciamos el polling
+                      pollReportStatus(task_id, token, filename);
+                  }
+              } catch (error) {
+                  console.error("Error en el flujo de PDF:", error);
+                  lastProcessedExportTrigger = null;
+              }
+          };
+
+          ejecutarExportacion();
+      }
+  }, [exportConfig]);
+
+  const handleSaveBlockName = async (blockId, newName) => {
+    try {
+      await axios.put(`${apiUrl}/programacion/updateEvent/${blockId}/`, 
+        { title: newName }, // O 'title' según se llame tu columna en public.programacion_bloque
+        { headers: { Authorization: `Token ${token}` } }
+      );
+      
+      // Esto refresca los eventos en el calendario automáticamente
+      fetchEvents(); 
+    } catch (e) {
+      console.error("Error al actualizar el bloque:", e);
+      alert("No se pudo actualizar el nombre del bloque.");
+    }
+  };
 
   return (
     <div className='calendar-container'>
@@ -391,6 +443,23 @@ useEffect(() => {
           });
         }}
 
+        eventClick={(clickInfo) => {
+          // Detectamos Ctrl + Click Izquierdo
+          if (clickInfo.jsEvent.ctrlKey || clickInfo.jsEvent.metaKey) {
+            clickInfo.jsEvent.preventDefault();
+            
+            setEditModal({
+              show: true,
+              x: clickInfo.jsEvent.clientX,
+              y: clickInfo.jsEvent.clientY,
+              event: {
+                id: clickInfo.event.id,
+                title: clickInfo.event.title
+              }
+            });
+          }
+        }}
+
         // CLICK IZQUIERDO PARA NAVEGAR (Month to Day)
         dateClick={handleDateClick}
         
@@ -419,6 +488,15 @@ useEffect(() => {
              handlePasteAction(ev);
              setContextMenu(null);
           }}
+        />
+      )}
+      {editModal?.show && (
+        <EditBlockModal 
+          x={editModal.x} 
+          y={editModal.y} 
+          event={editModal.event} 
+          onClose={() => setEditModal({ ...editModal, show: false })}
+          onSave={handleSaveBlockName}
         />
       )}
     </div>

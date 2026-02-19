@@ -69,9 +69,6 @@ const ImportTemplateModal = ({ isVisible, onClose, onSave, position }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[3000]">
-      
-      {/* Contenedor del Modal Posicionado */}
       <div 
         ref={modalRef}
         className="fixed bg-white w-full max-w-sm p-6 rounded-2xl shadow-2xl border border-gray-100 transform transition-all z-[100]"
@@ -130,12 +127,12 @@ const ImportTemplateModal = ({ isVisible, onClose, onSave, position }) => {
         {/* Botón Confirmar */}
         <button 
           onClick={handleImportClick}
-          className="w-full mt-6 !bg-[#001EB4] text-white font-bold py-3 rounded-2xl hover:!bg-[#44C8F5] transition-all shadow-md shadow-blue-100 flex items-center justify-center gap-2 text-[11px] active:scale-95 tracking-widest"
+          disabled={!selectedCalendar || !selectedTemplate}
+          className="w-full mt-6 flex items-center justify-center gap-2 !bg-[#001EB4] text-white font-bold px-4 py-3 rounded-xl hover:!bg-[#44C8F5] transition-all shadow-lg shadow-blue-100 active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
         >
           <FaDownload /> Importar
         </button>
       </div>
-    </div>
   );
 };
 

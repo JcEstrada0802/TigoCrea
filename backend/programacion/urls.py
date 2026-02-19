@@ -14,4 +14,5 @@ urlpatterns = [
     path('updateEvent/<int:pk>/', updateEvent, name='updateEvent'),
     path('bulkUpdate/', bulkUpdate, name='bulkUpdate'),
     path('createTemplate/', createTemplate, name='createTemplate'),
+    path('exportGridPDF/', exportGridPDF, name='exportGridPDF'),
 ]

@@ -9,6 +9,19 @@ from .models import BloqueCategoria, Bloque, Template, Calendario, Evento
 from .serializers import *
 from catalogo.utils.timeToFrame import timecode_to_frames
 from backend.permissions import *
+from .tasks import renderGridPDF
+from datetime import datetime
+from django.http import JsonResponse
+
+import os
+import base64
+from django.conf import settings
+
+#----------------------- CARGAR BASE64 IMG PARA PDF -----------------------
+logo_path = os.path.join(settings.BASE_DIR, 'imgs', 'logo.png')
+with open(logo_path, "rb") as image_file:
+    encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+#--------------------------------------------------------------------------
 
 # ------------------------------- CREACION DE CATBLOCKS -------------------------------
 @api_view(['POST'])
@@ -335,3 +348,52 @@ def bulkUpdate(request):
     except Exception as e:
         print(f"Error en bulkUpdate: {str(e)}")
         return Response({"error": "Error al procesar la actualización masiva"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+# ---------------------- EXPORTAR PARRILLA A PDF ----------------------
+@api_view(['POST'])
+@permission_classes([IsAuthenticated & (IsViewer | IsAdminUser)])
+def exportGridPDF(request):
+    try:
+        # 1. Recibimos los parámetros mínimos
+        calendar_id = request.data.get('calendar_id')
+        report_title = request.data.get('filename', 'Parrilla de Programación')
+        start_date = request.data.get('start_date')  # ISO String desde el front
+        end_date = request.data.get('end_date')      # ISO String desde el front
+
+        # 2. Obtenemos datos del usuario para el encabezado
+        user = request.user
+        first_name = user.first_name if user.first_name else user.username
+        last_name = user.last_name if user.last_name else ""
+
+        # 3. Preparación del contexto para la tarea de Celery
+        # Nota: Aquí no mandamos los logs todavía, los buscaremos dentro de la Task
+        # para que el paso de datos a Celery sea ligero.
+        context = {
+            'calendar_id': calendar_id,
+            'report_title': report_title,
+            'start_date': start_date,
+            'end_date': end_date,
+            'export_date': datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+            'first_name': first_name,
+            'last_name': last_name,
+            'logo_data': encoded_string
+        }
+        # 4. Mandamos a Celery (renderGridPDF será tu nueva tarea)
+        # Esta tarea se encargará de hacer el Queryset y armar el PDF
+        task = renderGridPDF.delay(context)
+
+        return Response(
+            {
+                "message": "Generando el PDF de la parrilla...",
+                "task_id": task.id
+            },
+            status=status.HTTP_202_ACCEPTED
+        )
+
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        return Response(
+            {"error": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

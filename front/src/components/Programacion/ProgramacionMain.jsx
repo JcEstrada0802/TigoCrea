@@ -39,6 +39,7 @@ function ProgramacionMain() {
   const [universalCB, setUniversalCB] = useState(null);
   const [importConfig, setImportConfig] = useState(null);
   const [saveConfig, setSaveConfig] = useState(null);
+  const [exportConfig, setExportConfig] = useState(null);
 
   // ------------------ SETEAR CATEGORIAS Y BLOQUES ------------------
   const fetchCatalog = async() =>{
@@ -153,6 +154,15 @@ function ProgramacionMain() {
     })
   }
 
+  // -------------- EXPORTACION A PDF DE LA PARRILLA -------------
+  const ExportToPDF = (calendarId, pdfName) => {
+    setExportConfig({
+      calendarId: calendarId,
+      pdfName: pdfName,
+      trigger: Date.now()
+    })
+  }
+
   return (
     <div style={{ 
         display: 'flex', 
@@ -164,7 +174,7 @@ function ProgramacionMain() {
         
         {/* Contenedor del Manager */}
         <aside style={{ width: '320px', display: 'flex', flexDirection: 'column', height: '95vh', padding: '10px', boxSizing: 'border-box'}}>
-          <TemplateControls onConfirmImport={ImportTemplate} onConfirmExport={SaveTemplate}/>
+          <TemplateControls onConfirmImport={ImportTemplate} onConfirmExport={SaveTemplate} onConfirmPDF={ExportToPDF}/>
           <div style={{ flexGrow: 1, overflow: 'hidden' }}>
             <BlockManager categorias={datos} createCat={handleAddClick} createBlock={handleCreateBlock}/>
           </div>
@@ -187,7 +197,8 @@ function ProgramacionMain() {
                 setClipboard={setUniversalCB} 
                 isCompact={CalendarViews > 1} 
                 importConfig={importConfig}
-                saveConfig ={saveConfig}/>
+                saveConfig={saveConfig}
+                exportConfig={exportConfig}/>
             </div>
           ))}
         </main>
