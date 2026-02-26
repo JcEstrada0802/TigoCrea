@@ -79,10 +79,10 @@ function ProgramacionMain() {
       setTimeout(() => setShowAlert(false), 2500)
     }catch(err){
       setTipo("error")
-      setMensaje("Error al crear la Categoria de bloques")
+      setMensaje(err.response.data.error)
       setShowAlert(true)
       setTimeout(() => setShowAlert(false), 2500)
-      console.log("Error, ", err)
+      console.log("Error, ", err.response.data.error)
     }
   };
   // -----------------------------------------------------------------

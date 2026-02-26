@@ -1,70 +1,68 @@
 import React from 'react';
 
 const variants = {
+  // Estilo "Info" azul: bg claro, acento azul intenso
   info: {
-    bg: 'bg-blue-100 dark:bg-blue-900',
-    border: 'border-blue-500 dark:border-blue-700',
-    text: 'text-blue-900 dark:text-blue-100',
+    // Fondo claro con borde redondeado y acento izquierdo azul
+    //
+    bg: '!bg-blue-50 dark:!bg-slate-800',
+    border: '!border-blue-600',
+    text: '!text-slate-800 dark:!text-blue-100',
     icon: 'text-blue-600',
-    btnConfirm: 'bg-blue-600 hover:bg-blue-700',
-    btnCancel: 'border-blue-600 text-blue-600 hover:bg-blue-200'
+    // Botones con estilo info
+    btnConfirm: '!bg-blue-600 hover:!bg-blue-700',
+    btnCancel: '!border-blue-600 !text-blue-600 hover:!bg-blue-100 dark:hover:!bg-slate-700'
   },
+  // Estilo "Warning" amarillo: bg claro, acento amarillo/naranja
   warning: {
-    bg: 'bg-yellow-100 dark:bg-yellow-900',
-    border: 'border-yellow-500 dark:border-yellow-700',
-    text: 'text-yellow-900 dark:text-yellow-100',
+    bg: '!bg-yellow-50 dark:!bg-slate-800',
+    border: '!border-yellow-500',
+    text: '!text-slate-800 dark:!text-yellow-100',
     icon: 'text-yellow-600',
-    btnConfirm: 'bg-yellow-600 hover:bg-yellow-700',
-    btnCancel: 'border-yellow-600 text-yellow-600 hover:bg-yellow-200'
+    // Botones con estilo warning
+    btnConfirm: '!bg-yellow-600 hover:!bg-yellow-700',
+    btnCancel: '!border-yellow-600 !text-yellow-600 hover:!bg-yellow-100 dark:hover:!bg-slate-700'
   },
 };
 
 const ConfirmationAlert = ({ message, tipo = 'info', onConfirm, onCancel }) => {
-
   if (!message) return null;
 
   const style = variants[tipo] || variants.info;
 
   return (
-    <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+    <div className="fixed top-6 left-0 right-0 z-[10001] flex justify-center px-4 pointer-events-none">
       <div
         role="alert"
-        className={`${style.bg} border-l-4 ${style.border} ${style.text} p-4 rounded-lg shadow-2xl flex flex-col max-w-md w-full transition duration-300 ease-in-out scale-100`}
+        className={`${style.bg} border-l-4 ${style.border} p-3 rounded-xl shadow-2xl flex flex-col gap-2 max-w-sm w-full pointer-events-auto backdrop-blur-md border border-white/20 animate-in fade-in slide-in-from-top-2 duration-300`}
       >
-        <div className="flex items-center mb-4">
-          <svg
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            fill="none"
-            className={`h-6 w-6 flex-shrink-0 mr-3 ${style.icon}`}
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M13 16h-1v-4h1m0-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              strokeWidth={2}
-              strokeLinejoin="round"
-              strokeLinecap="round"
-            />
-          </svg>
-          <p className="text-sm font-bold uppercase tracking-wider">Confirmar Acción</p>
+        {/* Nivel 1: Mensaje más compacto */}
+        <div className="flex items-start gap-2.5">
+          <div className={`${style.icon} mt-0.5 flex-shrink-0`}>
+            <svg stroke="currentColor" viewBox="0 0 24 24" fill="none" className="h-4 w-4" xmlns="http://www.w3.org/2000/svg">
+              <path d="M13 16h-1v-4h1m0-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+            </svg>
+          </div>
+          <div className={`${style.text} flex-1`}>
+            <p className="text-[12px] font-bold leading-tight">
+              {message}
+            </p>
+          </div>
         </div>
 
-        <div className="mb-6">
-          <p className="text-sm font-semibold">{message}</p>
-        </div>
-
-        <div className="flex justify-end gap-3">
+        {/* Nivel 2: Botones pequeños y estilizados */}
+        <div className="flex justify-end items-center gap-2 mt-1">
           <button
             onClick={onCancel}
-            className={`px-4 py-1.5 text-xs font-bold rounded-full border-2 transition-colors ${style.btnCancel}`}
+            className={`!px-3 !py-1 text-[9px] font-black tracking-widest rounded-lg transition-all ${style.btnCancel}`}
           >
-            CANCELAR
+            Cancelar
           </button>
           <button
             onClick={onConfirm}
-            className={`px-4 py-1.5 text-xs font-bold rounded-full text-white shadow-md transition-colors ${style.btnConfirm}`}
+            className={`!px-3 !py-1 text-[9px] font-black tracking-widest !text-white rounded-lg shadow-md transition-all ${style.btnConfirm}`}
           >
-            CONFIRMAR
+            Confirmar
           </button>
         </div>
       </div>

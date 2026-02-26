@@ -16,4 +16,5 @@ urlpatterns = [
     path('createTemplate/', createTemplate, name='createTemplate'),
     path('exportGridPDF/', exportGridPDF, name='exportGridPDF'),
     path('bulkDelete/', bulkDelete, name='bulkDelete'),
+    path('deleteEvent/<int:pk>/', deleteEvent, name='deleteEvent'),
 ]

@@ -166,7 +166,7 @@ export default function Sidebar() {
                             <SidebarItem icon={ReportingIcon} text="Reportería" to="/reporteria" />
                         )}
                         <hr className="my-3" />
-                        <SidebarItem icon={ProfileIcon} text="Profile" to="/perfil" />
+                        <SidebarItem icon={ProfileIcon} text="Perfil" to="/perfil" />
                     </ul>
                 </SidebarContext.Provider>
                 

@@ -193,11 +193,11 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
     }));
 
     try {
-      await bulkCreateEventsInDB(apiUrl, token, dataToSave);
+      const data = await bulkCreateEventsInDB(apiUrl, token, dataToSave);
       
       // Refrescamos todo para asegurar que los IDs de la DB queden vinculados a la UI
       fetchEvents();
-      showAlert('success', '¡Parrilla actualizada exitosamente!');
+      showAlert('success', 'Eventos pegados exitosamente');
     } catch (e) {
       console.error("Error al persistir el pegado:", e);
       // Revertimos el cambio visual si la DB falló
@@ -424,10 +424,27 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
       // Esto refresca los eventos en el calendario automáticamente
       fetchEvents(); 
     } catch (e) {
+      showAlert('error', e.reponse.data.error)
       console.error("Error al actualizar el bloque:", e);
       alert("No se pudo actualizar el nombre del bloque.");
     }
   };
+
+  const handleDeleteBlock = async(blockId) => {
+    try {
+      console.log("q onda")
+      await axios.delete(`${apiUrl}/programacion/deleteEvent/${blockId}/`, {
+        headers: { Authorization: `Token ${token}` }
+      });
+      
+      // Esto refresca los eventos en el calendario automáticamente
+      fetchEvents(); 
+      showAlert('success', 'Evento eliminado exitosamente.')
+    } catch (e) {
+      const mensajeDeError = e.response?.data?.error || "No se pudo eliminar el bloque.";
+      showAlert('error', mensajeDeError)
+    }
+  }
 
   return (
     <div className='calendar-container'>
@@ -574,6 +591,7 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
           event={editModal.event} 
           onClose={() => setEditModal({ ...editModal, show: false })}
           onSave={handleSaveBlockName}
+          onDelete={handleDeleteBlock}
         />
       )}
     </div>

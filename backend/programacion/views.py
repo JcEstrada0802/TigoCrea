@@ -25,7 +25,7 @@ with open(logo_path, "rb") as image_file:
 
 # ------------------------------- CREACION DE CATBLOCKS -------------------------------
 @api_view(['POST'])
-@permission_classes([IsAdminUser])
+@permission_classes([IsAuthenticated & (IsOnAirLogger | IsAdminUser)])
 def createBlockCat(request):
     try:
         nombre = request.data.get('nombre')
@@ -40,7 +40,7 @@ def createBlockCat(request):
             }, status=status.HTTP_409_CONFLICT)
         if(BloqueCategoria.objects.filter(color=color).exists()):
             return Response({
-                "error": f"Error, Ya existe una categoría con color: {color}"
+                "error": f"Error, Ya existe una categoría con ese color"
             }, status=status.HTTP_409_CONFLICT)
         categoria_bloque = BloqueCategoria.objects.create(
             nombre=nombre,
@@ -61,7 +61,7 @@ def createBlockCat(request):
     
 # ------------------------------- CREACION DE BLOQUES -------------------------------
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated & (IsOnAirLogger | IsAdminUser)])
 def createBlock(request):
     try:
         data = request.data
@@ -105,7 +105,7 @@ def createBlock(request):
 
 # ------------------------------- CATALOGO DE BLOQUES -------------------------------
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated & (IsOnAirLogger | IsAdminUser)])
 def getProgCatalog(request):
     try:
         categorias = BloqueCategoria.objects.all().prefetch_related('bloques')
@@ -120,7 +120,7 @@ def getProgCatalog(request):
     
 # ------------------------------ CATALOGO DE TEMPLATES -----------------------------  
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated & (IsOnAirLogger | IsAdminUser)])
 def getTemplates(request):
     try:
         templates = Template.objects.all()
@@ -145,7 +145,7 @@ def getTemplates(request):
         )
     
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated & (IsOnAirLogger | IsAdminUser)])
 def createTemplate(request):
     try:
         nombre = request.data.get('nombre')
@@ -179,7 +179,7 @@ def createTemplate(request):
 
 # ------------------------------ CATALOGO DE CALENDARS -----------------------------
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated & (IsOnAirLogger | IsAdminUser)])
 def getCalendars(request):
     try:
         calendarios = Calendario.objects.all()
@@ -202,7 +202,7 @@ def getCalendars(request):
     
 # ------------------------ OBTENER EVENTOS DE CALENDAR BY ID -----------------------
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated & (IsOnAirLogger | IsAdminUser)])
 def getEventsByCalendar(request):
     calendar_id = request.data.get('calendar_id')
     if not calendar_id:
@@ -237,7 +237,7 @@ def getEventsByCalendar(request):
 
 # ---------------------------- CREATE/COPY/PASTE EVENTOS ---------------------------
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated & (IsOnAirLogger | IsAdminUser)])
 def createEvent(request):
     data = request.data
     try:
@@ -271,7 +271,7 @@ def createEvent(request):
         return Response({"error": "Error interno del servidor"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated & (IsOnAirLogger | IsAdminUser)])
 def bulkSave(request):
     eventos_data = request.data.get('eventos', [])
     if not eventos_data:
@@ -296,7 +296,7 @@ def bulkSave(request):
         return Response({"error": str(e)}, status=500)
 
 @api_view(['PUT'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated & (IsOnAirLogger | IsAdminUser)])
 def updateEvent(request, pk):
     try:
         # Buscamos el evento por el ID que viene en la URL
@@ -324,7 +324,7 @@ def updateEvent(request, pk):
 
 # ---------------------- ACTUALIZACIÓN MASIVA (Shift + Drag) ----------------------
 @api_view(['PUT'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated & (IsOnAirLogger | IsAdminUser)])
 def bulkUpdate(request):
     eventos_data = request.data.get('eventos', [])
     
@@ -350,7 +350,7 @@ def bulkUpdate(request):
         return Response({"error": "Error al procesar la actualización masiva"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 @api_view(['DELETE', 'POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated & (IsOnAirLogger | IsAdminUser)])
 def bulkDelete(request):
     try:
         ids = request.data.get('ids')
@@ -369,7 +369,7 @@ def bulkDelete(request):
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 # ---------------------- EXPORTAR PARRILLA A PDF ----------------------
 @api_view(['POST'])
-@permission_classes([IsAuthenticated & (IsAdLogger | IsAdminUser)])
+@permission_classes([IsAuthenticated & (IsOnAirLogger | IsAdminUser)])
 def exportGridPDF(request):
     try:
         # 1. Recibimos los parámetros mínimos
@@ -412,4 +412,37 @@ def exportGridPDF(request):
         return Response(
             {"error": str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+    
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated & (IsOnAirLogger | IsAdminUser)])
+def deleteEvent(request, pk):
+    try:
+        # 1. Buscamos el bloque
+        evento = Evento.objects.get(pk=pk)
+        
+        # 2. Validación: ¿El bloque es del pasado? (Opcional)
+        # Si la fecha del bloque es menor a hoy, bloqueamos el borrado
+        if evento.start.date() < timezone.now().date() and not request.user.is_superuser:
+            return Response(
+                {"error": "No puedes borrar bloques de días pasados."}, 
+                status=status.HTTP_403_FORBIDDEN)
+
+        # 3. Proceder con el borrado
+        evento.delete()
+        
+        return Response(
+            {"message": "Bloque eliminado exitosamente"}, 
+            status=status.HTTP_200_OK
+        )
+
+    except Evento.DoesNotExist:
+        return Response(
+            {"error": "El bloque no existe o ya fue eliminado."}, 
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        return Response(
+            {"error": f"Error inesperado: {str(e)}"}, 
+            status=status.HTTP_400_BAD_REQUEST
         )
