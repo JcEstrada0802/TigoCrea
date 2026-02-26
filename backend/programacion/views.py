@@ -349,9 +349,27 @@ def bulkUpdate(request):
         print(f"Error en bulkUpdate: {str(e)}")
         return Response({"error": "Error al procesar la actualización masiva"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
+@api_view(['DELETE', 'POST'])
+@permission_classes([IsAuthenticated])
+def bulkDelete(request):
+    try:
+        ids = request.data.get('ids')
+        if ids is None:
+            return Response({'error': 'Faltan campos, campos requeridos: "ids.'},status=status.HTTP_400_BAD_REQUEST)
+        if not isinstance(ids, list):
+            return Response({'error': 'el campo "ids" debe ser una lista/array.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not ids:
+            return Response({'message': 'No se proporcionaron IDs para eliminar.'}, status=status.HTTP_200_OK)
+        deleted_count, _ = Evento.objects.filter(id__in=ids).delete()
+        return Response({
+            "message": f'Se eliminaron {deleted_count} eventos exitosamente.',
+            "deleted_count": deleted_count
+        }, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 # ---------------------- EXPORTAR PARRILLA A PDF ----------------------
 @api_view(['POST'])
-@permission_classes([IsAuthenticated & (IsViewer | IsAdminUser)])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsAdminUser)])
 def exportGridPDF(request):
     try:
         # 1. Recibimos los parámetros mínimos
@@ -391,8 +409,6 @@ def exportGridPDF(request):
         )
 
     except Exception as e:
-        import traceback
-        print(traceback.format_exc())
         return Response(
             {"error": str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR

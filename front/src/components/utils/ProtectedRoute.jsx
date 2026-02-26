@@ -6,7 +6,7 @@ const ProtectedRoute = ({ children, allowedGroups }) => {
   const { isAuthenticated, isLoading, user } = useAuth();
 
   // 1. Mientras carga la sesión
-  if (isLoading) return <div>Cargando...</div>;
+  if (isLoading || (isAuthenticated && !user?.groups)) return <div>Cargando...</div>;
 
   // 2. Si no está logueado, a la fuerza al login
   if (!isAuthenticated) return <Navigate to="/login" replace />;
@@ -16,7 +16,8 @@ const ProtectedRoute = ({ children, allowedGroups }) => {
 
   // 4. Si la ruta tiene restricciones de grupo (como Catálogo o Programación)
   if (allowedGroups) {
-    const hasPermission = user?.groups?.some(group => allowedGroups.includes(group));
+    const userGroups = user?.groups || [];
+    const hasPermission = userGroups.some(group => allowedGroups.includes(group));
 
     if (!hasPermission) {
       const homePages = {
@@ -29,6 +30,7 @@ const ProtectedRoute = ({ children, allowedGroups }) => {
       const userGroupWithHome = user?.groups?.find(group => homePages[group]);
       const redirectPath = userGroupWithHome ? homePages[userGroupWithHome] : "/reporteria";
       
+      console.log("Acceso denegado para:", userGroups);
       return <Navigate to={redirectPath} replace />;
     }
   }

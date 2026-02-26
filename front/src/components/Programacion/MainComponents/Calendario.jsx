@@ -7,7 +7,7 @@ import { exportGridToPDF } from '../utils/ExportGridPDF';
 import ContextMenu from '../Modals/ContextMenu';
 import EditBlockModal from '../Modals/EditBlockModal';
 import { copyBlock, copyDay, copyWeek, pasteItems } from '../utils/ClipboardLogic';
-import { bulkCreateEventsInDB, createEventInDB, bulkUpdateEventsInDB, updateEventInDB } from '../utils/EventService';
+import { bulkCreateEventsInDB, createEventInDB, bulkUpdateEventsInDB, updateEventInDB, bulkDeleteEventsInDB } from '../utils/EventService';
 import './Calendario.css';
 import axios from 'axios';
 import pollReportStatus from '../../utils/PollReportStatus';
@@ -16,7 +16,7 @@ let lastProcessedTrigger = null;
 let lastProcessedSaveTrigger = null;
 let lastProcessedExportTrigger = null;
 
-const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importConfig, saveConfig, exportConfig }) => {
+const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importConfig, saveConfig, exportConfig, showAlert }) => {
   const calendarRef = useRef(null);
   const [contextMenu, setContextMenu] = useState(null); // { x, y, event }
   const [editModal, setEditModal] = useState(null);     // { x, y, event }
@@ -125,28 +125,88 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
     setClipboard(result);
   };
 
-  const handlePasteAction = async(targetEvent) => {
+  const handlePasteAction = async (targetEvent) => {
     const calendarApi = calendarRef.current.getApi();
+    
+    // --- PASO 0: NORMALIZAR RANGO (Lunes a Lunes o Día completo) ---
+    let pasteStart = new Date(targetEvent.start);
+    let pasteEnd = new Date(pasteStart);
+
+    if (clipboard.type === 'WEEK') {
+      // Forzamos el inicio al Lunes 00:00:00 de esa semana
+      const day = pasteStart.getDay();
+      const diff = pasteStart.getDate() - day + (day === 0 ? -6 : 1);
+      pasteStart = new Date(pasteStart.setDate(diff));
+      pasteStart.setHours(0, 0, 0, 0);
+
+      // El fin es exactamente 7 días después
+      pasteEnd = new Date(pasteStart);
+      pasteEnd.setDate(pasteStart.getDate() + 7);
+
+    } else if (clipboard.type === 'DAY') {
+      // Forzamos el inicio a las 00:00:00 de ese día
+      pasteStart.setHours(0, 0, 0, 0);
+      pasteEnd = new Date(pasteStart);
+      pasteEnd.setDate(pasteStart.getDate() + 1);
+    } else {
+      // Si es un bloque solo, no definimos rango de borrado masivo
+      pasteEnd = null; 
+    }
+
+    // --- FASE 1: LIMPIEZA DE LA SEMANA/DÍA EN DB Y UI ---
+    if (pasteEnd) {
+      const existingEvents = calendarApi.getEvents().filter(ev => {
+        return ev.start >= pasteStart && ev.start < pasteEnd;
+      });
+
+      if (existingEvents.length > 0) {
+        const idsToDelete = existingEvents.map(ev => ev.id);
+        
+        try {
+          // Borramos en el servidor usando tu nuevo servicio
+          await bulkDeleteEventsInDB(apiUrl, token, idsToDelete);
+          
+          // Borramos de la interfaz
+          existingEvents.forEach(ev => ev.remove());
+        } catch (e) {
+          console.error("Error limpiando eventos previos", e);
+          showAlert('error', 'No se pudieron limpiar los eventos existentes antes de pegar.');
+          return; // Abortamos para no pegar encima si el borrado falló
+        }
+      }
+    }
+
+    // --- FASE 2: PEGADO DE NUEVOS EVENTOS ---
+    // Usamos targetEvent.start original, pasteItems ya sabe buscar el lunes internamente
     const newEventsUI = pasteItems(new Date(targetEvent.start), clipboard, calendarApi);
+    
     if (newEventsUI.length === 0) return;
+
+    // Preparamos el payload para el bulkSave
     const dataToSave = newEventsUI.map(ev => ({
       title: ev.title,
-      start: ev.start, // pasteItems ya calculó estas fechas
+      start: ev.start, 
       end: ev.end,
       background_color: ev.backgroundColor,
       calendar_id: selectedCalId,
       extended_props: ev.extendedProps || {}
     }));
-    try{
-      await bulkCreateEventsInDB(apiUrl, token, dataToSave)
+
+    try {
+      await bulkCreateEventsInDB(apiUrl, token, dataToSave);
+      
+      // Refrescamos todo para asegurar que los IDs de la DB queden vinculados a la UI
       fetchEvents();
-    }catch(e){
+      showAlert('success', '¡Parrilla actualizada exitosamente!');
+    } catch (e) {
+      console.error("Error al persistir el pegado:", e);
+      // Revertimos el cambio visual si la DB falló
       newEventsUI.forEach(ev => {
         const eventInCal = calendarApi.getEventById(ev.id);
         if (eventInCal) eventInCal.remove();
       });
-      alert("Error al persistir el pegado");
-      }
+      showAlert('error', "Error al guardar los nuevos eventos en el servidor.");
+    }
   };
 
   // --- LÓGICA DE NAVEGACIÓN ---
@@ -234,7 +294,13 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
       console.log("Yo lo agarro primero (Instancia:", id, ")");
       const calendarApi = calendarRef.current?.getApi();
       if (calendarApi) {
-        handlePasteAction({ start: calendarApi.view.activeStart });
+        try{
+          handlePasteAction({ start: calendarApi.view.activeStart });
+          showAlert('success','Plantilla importada exitosamente.');
+        }catch(e){
+          console.log("Error: ", e);
+          showAlert('error', 'Error al importar plantilla.');
+        }
       }
     }
   }, [importConfig]);
@@ -254,13 +320,21 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
 
         const currentView = calendarApi.view;
         const allEvents = calendarApi.getEvents();
-        if (allEvents.length === 0) {
-          alert("No hay eventos en esta semana para guardar como plantilla.");
+
+        const viewStart = currentView.activeStart; // Lunes 00:00
+        const viewEnd = currentView.activeEnd;
+
+        const eventsInView = allEvents.filter(ev => {
+          return ev.start >= viewStart && ev.start < viewEnd;
+        });
+
+        if (eventsInView.length === 0) {
+          showAlert('warning', 'No hay eventos en esta semana para guardar como plantilla');
           return;
         }
 
         // Calcular el Lunes de la semana actual visible
-        const target = new Date(currentView.activeStart);
+        const target = new Date(viewStart);
         const day = target.getDay();
         const diff = target.getDate() - day + (day === 0 ? -6 : 1);
         const mondayStart = new Date(target.setDate(diff));
@@ -272,7 +346,7 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
         const templateData = {
           type: "WEEK",
           sourceMonday: sourceMondayTimestamp,
-          data: allEvents.map(ev => ({
+          data: eventsInView.map(ev => ({
             title: ev.title,
             duration: ev.end.getTime() - ev.start.getTime(),
             offset: ev.start.getTime() - sourceMondayTimestamp,
@@ -283,6 +357,7 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
             }
           }))
         };
+        console.log(templateData)
 
         // Envío a la DB
         try {
@@ -295,10 +370,10 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
             headers: { Authorization: `Token ${token}` }
           });
           
-          alert(`Plantilla "${saveConfig.templateName}" guardada exitosamente.`);
+          showAlert('success', `Plantilla "${saveConfig.templateName}" guardada exitosamente.`)
         } catch (e) {
           console.error("Error al guardar plantilla:", e);
-          alert("Error al persistir la plantilla en el servidor.");
+          showAlert('error', "Error al guardar la plantilla en el servidor. ")
           // Si falló, liberamos el trigger por si el usuario quiere reintentar
           lastProcessedSaveTrigger = null; 
         }
@@ -328,12 +403,13 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
                       // Iniciamos el polling
                       pollReportStatus(task_id, token, filename);
                   }
+                  showAlert('success', 'PDF exportando, por favor espere...');
               } catch (error) {
                   console.error("Error en el flujo de PDF:", error);
                   lastProcessedExportTrigger = null;
+                  showAlert('error', 'Error al exportar el PDF.');
               }
           };
-
           ejecutarExportacion();
       }
   }, [exportConfig]);
@@ -397,7 +473,7 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
         allDaySlot={false}
         slotDuration={zoom}
         snapDuration="00:05:00"
-        eventOverlap={(stillEvent, movingEvent) => {
+        eventOverlap={() => {
             return window.event?.shiftKey ? true : false;
           }}
 
@@ -442,7 +518,8 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
             });
           });
         }}
-
+        
+        // CLICK IZQUIERDO + CTRL PARA EDITAR EVENTO
         eventClick={(clickInfo) => {
           // Detectamos Ctrl + Click Izquierdo
           if (clickInfo.jsEvent.ctrlKey || clickInfo.jsEvent.metaKey) {

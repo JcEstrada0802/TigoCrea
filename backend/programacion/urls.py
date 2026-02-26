@@ -15,4 +15,5 @@ urlpatterns = [
     path('bulkUpdate/', bulkUpdate, name='bulkUpdate'),
     path('createTemplate/', createTemplate, name='createTemplate'),
     path('exportGridPDF/', exportGridPDF, name='exportGridPDF'),
+    path('bulkDelete/', bulkDelete, name='bulkDelete'),
 ]

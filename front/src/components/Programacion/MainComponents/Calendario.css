@@ -295,57 +295,79 @@
    ========================================================================== */
 
 /* Contenedor del select */
+/* ==========================================================================
+   SELECTOR DE CANAL CENTRAL (HEADER)
+   ========================================================================== */
+
+/* Contenedor del select */
 .channel-selector-header-center {
   position: absolute;
-  top: 18px;            /* Ajuste para que quede alineado con el título del calendario */
+  top: 18px;            /* Posición base */
   left: 48.35%;
   transform: translateX(-50%);
-  z-index: 1000;        /* Por encima del header de FullCalendar */
-  pointer-events: none; /* CLAVE: El div no captura clics, los deja pasar al calendario */
+  z-index: 100;
+  pointer-events: none; /* No bloquea clics al calendario */
   display: flex;
   justify-content: center;
   width: auto;
+  transition: top 0.3s ease; /* Transición suave al bajar/subir */
 }
 
-/* El elemento <select> propiamente */
+/* El elemento <select> propiamente (Versión Micro) */
 .channel-select-header {
-  pointer-events: all;  /* El select sí recibe clics */
+  pointer-events: all;
   background-color: #ffffff;
-  border: 2px solid #001EB4; /* Azul Tigo */
+  border: 1.2px solid #001EB4; /* Borde fino */
   color: #001EB4;
-  font-size: 11px;
-  font-weight: 900;
-  padding: 3px 12px;
-  border-radius: 20px;
+  font-size: 9px;             /* Texto micro */
+  font-weight: 800;
+  padding: 0px 6px;           /* Padding casi inexistente */
+  padding-right: 16px;        /* Espacio mínimo para flecha */
+  border-radius: 10px;        /* Bordes sutiles */
   cursor: pointer;
   outline: none;
   text-transform: uppercase;
-  /* box-shadow: 0 2px 8px rgba(0, 30, 180, 0.15); */
-  transition: all 0.2s ease;
-  min-width: 140px;
-  text-align-last: center; /* Centra el texto de la opción seleccionada */
-  appearance: none;        /* Quita el estilo por defecto del navegador */
+  min-width: 80px;            /* Súper estrecho */
+  height: 20px;               /* Altura fija pequeña */
+  text-align-last: center;
+  appearance: none;
   background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23001EB4'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 8px center;
-  background-size: 18px;
-  padding-right: 25px;     /* Espacio para la flechita */
+  background-position: right 4px center;
+  background-size: 10px;
+  transition: all 0.2s ease;
 }
 
-/* Efectos al pasar el mouse */
+/* Efecto Hover */
 .channel-select-header:hover {
-  border-color: #44C8F5;   /* Celeste Tigo */
-  /* transform: translateY(-1px); */
-  /* box-shadow: 0 4px 12px rgba(0, 30, 180, 0.2); */
+  border-color: #44C8F5;
+  color: #44C8F5;
 }
 
-/* Ajuste para cuando el calendario se vuelve pequeño (Vistas múltiples) */
+/* --- ESTADO: SINGLE VIEW (Baja y crece un poquito) --- */
+.single-view .channel-selector-header-center {
+  top: 45px; 
+}
+
+.single-view .channel-select-header {
+  font-size: 10px;
+  padding: 1px 10px;
+  padding-right: 20px;
+  min-width: 110px;
+  height: 24px;
+}
+
+/* --- ESTADO: VISTAS MÚLTIPLES (Se mantiene arriba y más pequeño) --- */
+.view-multiple .channel-selector-header-center,
+.view-grid .channel-selector-header-center {
+  top: 30px;
+}
+
 .view-multiple .channel-select-header,
 .view-grid .channel-select-header {
-  font-size: 9px;
-  padding: 2px 8px;
-  padding-right: 20px;
-  min-width: 100px;
-  top: 10px;
-  background-size: 14px;
+  font-size: 8px;
+  min-width: 75px;
+  height: 18px;
+  background-size: 8px;
+  border-width: 1px;
 }

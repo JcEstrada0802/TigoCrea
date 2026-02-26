@@ -12,6 +12,12 @@ export default defineConfig({
     }),tailwindcss(),
   ],
   server:{
-    port:3005
+    port:3005,
+    watch: {
+      usePolling: true, // Muy importante en Docker para Mac/Windows
+    },
+  },
+  optimizeDeps: {
+    force: true, // Esto obliga a Vite a ignorar el caché viejo al arrancar
   }
 })

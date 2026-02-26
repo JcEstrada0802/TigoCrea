@@ -47,10 +47,6 @@ const CreateCatBlocksModal = ({ isVisible, onClose, onSave, position }) => {
                 left: position?.left || '20%', 
             }}
         >
-            {/* Botón Cerrar */}
-            <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors">
-                <FaTimes size={18} />
-            </button>
 
             {/* Header */}
             <div className="mb-5">

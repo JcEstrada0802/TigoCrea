@@ -66,3 +66,18 @@ export const bulkUpdateEventsInDB = async (apiUrl, token, eventsArray) => {
     throw error;
   }
 };
+
+// BORRADO MASIVO DE EVENTOS (PARA SOBRESCRIBIR AL PEGAR)
+export const bulkDeleteEventsInDB = async (apiUrl, token, idsArray) => {
+  try {
+    const response = await axios.post(
+      `${apiUrl}/programacion/bulkDelete/`, 
+      { ids: idsArray }, 
+      { headers: { Authorization: `Token ${token}` } }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error en borrado masivo:", error);
+    throw error;
+  }
+};

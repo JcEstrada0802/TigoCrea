@@ -40,6 +40,14 @@ function ProgramacionMain() {
   const [importConfig, setImportConfig] = useState(null);
   const [saveConfig, setSaveConfig] = useState(null);
   const [exportConfig, setExportConfig] = useState(null);
+  
+  // ------------------- SETEAR Y MOSTRAR ALERTAS --------------------
+  function setAlert(type, message) {
+    setMensaje(message)
+    setTipo(type)
+    setShowAlert(true)
+    setTimeout(() => {setShowAlert(false)}, 2500)
+  }
 
   // ------------------ SETEAR CATEGORIAS Y BLOQUES ------------------
   const fetchCatalog = async() =>{
@@ -183,7 +191,7 @@ function ProgramacionMain() {
 
         {/* Contenedor del Calendario */}
         <main className={`flex-1 grid gap-4 p-4 transition-all duration-300 ${
-            CalendarViews === 1 ? 'grid-cols-1' : 
+            CalendarViews === 1 ? 'grid-cols-1 single-view' : 
             CalendarViews === 2 ? 'grid-cols-2 view-multiple' : 
             'grid-cols-2 grid-rows-2 view-grid'
           }`}>
@@ -198,7 +206,8 @@ function ProgramacionMain() {
                 isCompact={CalendarViews > 1} 
                 importConfig={importConfig}
                 saveConfig={saveConfig}
-                exportConfig={exportConfig}/>
+                exportConfig={exportConfig}
+                showAlert={setAlert}/>
             </div>
           ))}
         </main>

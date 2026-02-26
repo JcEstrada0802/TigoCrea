@@ -31,20 +31,23 @@ export const AuthProvider = ({ children }) => {
   
   useEffect(() => {
     const validateToken = async () => {
-      if (token) {
-        try {
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
+      try {
           const response = await axios.post(`${API_URL}/reporteria/getUserContext/`,{}, { 
             headers: {
               'Authorization': `Token ${token}`
             }
           });
           setUser(response.data);
-        } catch (error) {
+      }catch (error) {
           console.error("Token inválido o expirado:", error);
           logout(); 
-        }
+      }finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     validateToken();
