@@ -272,7 +272,7 @@ def updateReport(request, report_id):
     return Response({'message': 'Reporte actualizado exitosamente'}, status=status.HTTP_200_OK)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated & (IsViewer | IsAdminUser)])
+@permission_classes([IsAuthenticated])
 def getReportStatus(request):
     try:
         task_id = request.query_params.get('taskId')
