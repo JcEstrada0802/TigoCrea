@@ -22,5 +22,6 @@ urlpatterns = [ path('getCategorias/', getCategorias, name='getCategorias'),    
                 path('updateCategoria/', updateCategoria, name='updateCategorias'),             # UPDATE
                 path('updateContenido/', updateContenido, name='updateContenido'),
                 path('updateProduccion/', updateProduccion, name='updateProduccion'),
-                path('updateSegmento/', updateSegmento, name='updateSegmento'),]          
+                path('updateSegmento/', updateSegmento, name='updateSegmento'),
+                path('getFullCatalog/', getFullCatalog, name='getFullCatalog'),]                # GET CATALOGO COMPLETO  
 

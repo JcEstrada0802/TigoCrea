@@ -6,6 +6,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import { exportGridToPDF } from '../utils/ExportGridPDF';
 import ContextMenu from '../Modals/ContextMenu';
 import EditBlockModal from '../Modals/EditBlockModal';
+import FillBlockModal from '../Modals/FillBlockModal';
 import { copyBlock, copyDay, copyWeek, pasteItems } from '../utils/ClipboardLogic';
 import { bulkCreateEventsInDB, createEventInDB, bulkUpdateEventsInDB, updateEventInDB, bulkDeleteEventsInDB } from '../utils/EventService';
 import './Calendario.css';
@@ -20,6 +21,7 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
   const calendarRef = useRef(null);
   const [contextMenu, setContextMenu] = useState(null); // { x, y, event }
   const [editModal, setEditModal] = useState(null);     // { x, y, event }
+  const [fillModal, setFillModal] = useState(null);
   const [eventos, setEventos] = useState({});
   
   // ESTADOS PARA SELECCIONAR CALENDARIO
@@ -197,7 +199,7 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
       
       // Refrescamos todo para asegurar que los IDs de la DB queden vinculados a la UI
       fetchEvents();
-      showAlert('success', 'Eventos pegados exitosamente');
+      showAlert('success', 'Eventos pegados exitosamente'); //VERIFICAR ERROR ACA
     } catch (e) {
       console.error("Error al persistir el pegado:", e);
       // Revertimos el cambio visual si la DB falló
@@ -490,9 +492,7 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
         allDaySlot={false}
         slotDuration={zoom}
         snapDuration="00:05:00"
-        eventOverlap={() => {
-            return window.event?.shiftKey ? true : false;
-          }}
+        eventOverlap={() => {return window.event?.shiftKey ? true : false;}}
 
         headerToolbar={{
           left: 'prev,next today',
@@ -551,6 +551,17 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
                 title: clickInfo.event.title
               }
             });
+          }else{
+            setFillModal({
+              show: true,
+              event: {
+                id: clickInfo.event.id,
+                title: clickInfo.event.title,
+                start: clickInfo.event.start,
+                end: clickInfo.event.end,
+                duracion_teorica_ff: clickInfo.event.extendedProps.duracion_ff
+              }
+            })
           }
         }}
 
@@ -592,6 +603,14 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
           onClose={() => setEditModal({ ...editModal, show: false })}
           onSave={handleSaveBlockName}
           onDelete={handleDeleteBlock}
+        />
+      )}
+
+      {fillModal?.show && (
+        <FillBlockModal 
+          event={fillModal.event}
+          onClose={()=> setFillModal({...fillModal, show: false})}
+          // DEBO AGREGAR FUNCION PARA GUARDAR EL BLOQUE YA LLENO
         />
       )}
     </div>

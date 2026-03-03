@@ -18,8 +18,8 @@ function App() {
           <Route path='/' element={<ProtectedRoute><Layout/></ProtectedRoute>}>
           
           <Route index element={<Navigate to="/catalogo" replace />} /> 
-          <Route path='catalogo' element={<ProtectedRoute allowedGroups={['AdLogger']}><CatalogacionMain/></ProtectedRoute>}/> 
-          <Route path='programacion' element={<ProtectedRoute allowedGroups={['AdLogger']}><ProgramacionMain/></ProtectedRoute>}/>   
+          <Route path='catalogo' element={<ProtectedRoute allowedGroups={['AdLogger','OnAirLogger']}><CatalogacionMain/></ProtectedRoute>}/> 
+          <Route path='programacion' element={<ProtectedRoute allowedGroups={['AdLogger','OnAirLogger']}><ProgramacionMain/></ProtectedRoute>}/>   
           <Route path='reporteria' element={<ProtectedRoute allowedGroups={['Viewer']}><ReporteriaMain/></ProtectedRoute>}/>
           <Route path='perfil' element={<ProtectedRoute><PerfilMain/></ProtectedRoute>}/>  
 

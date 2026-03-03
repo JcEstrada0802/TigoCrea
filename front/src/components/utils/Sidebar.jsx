@@ -155,14 +155,14 @@ export default function Sidebar() {
                 <SidebarContext.Provider value={{ isExpanded }}>
                     <ul className="flex-1 px-3">
                         {/* Solo lo ven los AdLoggers */}
-                        {(user?.is_superuser || user?.groups?.some(group => ["AdLogger"].includes(group))) && (
+                        {(user?.is_superuser || user?.groups?.some(group => ['AdLogger','OnAirLogger'].includes(group))) && (
                             <>
                             <SidebarItem icon={CatalogIcon} text="Catálogo" to="/catalogo" />
                             <SidebarItem icon={CalendarIcon} text="Programación" to="/programacion" />
                             </>
                         )}
                         {/* Solo lo ven los viewers */}
-                        {(user?.is_superuser || user?.groups?.some(group => ["Viewer"].includes(group))) && (
+                        {(user?.is_superuser || user?.groups?.some(group => ['Viewer'].includes(group))) && (
                             <SidebarItem icon={ReportingIcon} text="Reportería" to="/reporteria" />
                         )}
                         <hr className="my-3" />

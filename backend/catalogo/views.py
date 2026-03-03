@@ -1,11 +1,11 @@
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Categoria, Contenido, Produccion, Segmento
 from django.db.models import Q
 from .utils.timeToFrame import timecode_to_frames, frames_to_timecode
-
+from .Serializers import CatalogoCompletoSerializer
 
 # ---------------------- CREATE DE SECCIONES ----------------------
 @api_view(['POST'])
@@ -716,3 +716,19 @@ def updateSegmento(request):
             {"error": "Ocurrió un error inesperado al procesar la solicitud."},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+    
+# ------------------- GET DE CATALOGO COMPLETO -------------------
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def getFullCatalog(request):
+    try:
+        # Traemos categorías y pre-cargamos toda la cadena hacia abajo
+        queryset = Categoria.objects.all().prefetch_related(
+            'contenidos__producciones__segmentos'
+        )
+        
+        serializer = CatalogoCompletoSerializer(queryset, many=True)
+        return Response(serializer.data)
+    
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
