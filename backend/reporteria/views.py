@@ -302,7 +302,7 @@ def getReportStatus(request):
         )
     
 @api_view(['GET'])
-@permission_classes([IsAuthenticated & (IsViewer | IsAdminUser)])
+@permission_classes([IsAuthenticated])
 def getReportPDF(request):
     try:
         title = request.query_params.get('titulo')
