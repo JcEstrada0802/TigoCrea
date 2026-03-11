@@ -25,7 +25,7 @@ with open(logo_path, "rb") as image_file:
 
 # ------------------------------- CREACION DE CATBLOCKS -------------------------------
 @api_view(['POST'])
-@permission_classes([IsAuthenticated & (IsOnAirLogger | IsAdminUser)])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger | IsAdminUser)])
 def createBlockCat(request):
     try:
         nombre = request.data.get('nombre')
@@ -61,7 +61,7 @@ def createBlockCat(request):
     
 # ------------------------------- CREACION DE BLOQUES -------------------------------
 @api_view(['POST'])
-@permission_classes([IsAuthenticated & (IsOnAirLogger | IsAdminUser)])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger | IsAdminUser)])
 def createBlock(request):
     try:
         data = request.data
@@ -105,7 +105,7 @@ def createBlock(request):
 
 # ------------------------------- CATALOGO DE BLOQUES -------------------------------
 @api_view(['GET'])
-@permission_classes([IsAuthenticated & (IsOnAirLogger | IsAdminUser)])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger | IsAdminUser)])
 def getProgCatalog(request):
     try:
         categorias = BloqueCategoria.objects.all().prefetch_related('bloques')
@@ -120,7 +120,7 @@ def getProgCatalog(request):
     
 # ------------------------------ CATALOGO DE TEMPLATES -----------------------------  
 @api_view(['GET'])
-@permission_classes([IsAuthenticated & (IsOnAirLogger | IsAdminUser)])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger | IsAdminUser)])
 def getTemplates(request):
     try:
         templates = Template.objects.all()
@@ -145,7 +145,7 @@ def getTemplates(request):
         )
     
 @api_view(['POST'])
-@permission_classes([IsAuthenticated & (IsOnAirLogger | IsAdminUser)])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger | IsAdminUser)])
 def createTemplate(request):
     try:
         nombre = request.data.get('nombre')
@@ -179,7 +179,7 @@ def createTemplate(request):
 
 # ------------------------------ CATALOGO DE CALENDARS -----------------------------
 @api_view(['GET'])
-@permission_classes([IsAuthenticated & (IsOnAirLogger | IsAdminUser)])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger | IsAdminUser)])
 def getCalendars(request):
     try:
         calendarios = Calendario.objects.all()
@@ -202,9 +202,11 @@ def getCalendars(request):
     
 # ------------------------ OBTENER EVENTOS DE CALENDAR BY ID -----------------------
 @api_view(['POST'])
-@permission_classes([IsAuthenticated & (IsOnAirLogger | IsAdminUser)])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger | IsAdminUser)])
 def getEventsByCalendar(request):
     calendar_id = request.data.get('calendar_id')
+    start_date = request.data.get('start_date')
+    end_date = request.data.get('end_date')
     if not calendar_id:
         return Response({"error": "Falta el id del calendario"}, status=400)
     
@@ -213,6 +215,12 @@ def getEventsByCalendar(request):
         # Traemos todos los eventos vinculados a ese calendario
         eventos_qs = Evento.objects.filter(calendario=calendario)
         
+        if start_date and end_date:
+            eventos_qs = eventos_qs.filter(
+                start__lt=end_date, 
+                end__gt=start_date
+            )
+
         # Formateamos para FullCalendar
         eventos_data = []
         for ev in eventos_qs:
@@ -222,7 +230,7 @@ def getEventsByCalendar(request):
                 "start": ev.start.isoformat(),
                 "end": ev.end.isoformat(),
                 "backgroundColor": ev.background_color,
-                "extendedProps": ev.extended_props  # Aquí va tu info del catálogo
+                "extendedProps": ev.extended_props 
             })
 
         return Response({
@@ -237,7 +245,7 @@ def getEventsByCalendar(request):
 
 # ---------------------------- CREATE/COPY/PASTE EVENTOS ---------------------------
 @api_view(['POST'])
-@permission_classes([IsAuthenticated & (IsOnAirLogger | IsAdminUser)])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger | IsAdminUser)])
 def createEvent(request):
     data = request.data
     try:
@@ -271,7 +279,7 @@ def createEvent(request):
         return Response({"error": "Error interno del servidor"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 @api_view(['POST'])
-@permission_classes([IsAuthenticated & (IsOnAirLogger | IsAdminUser)])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger | IsAdminUser)])
 def bulkSave(request):
     eventos_data = request.data.get('eventos', [])
     if not eventos_data:
@@ -296,7 +304,7 @@ def bulkSave(request):
         return Response({"error": str(e)}, status=500)
 
 @api_view(['PUT'])
-@permission_classes([IsAuthenticated & (IsOnAirLogger | IsAdminUser)])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger | IsAdminUser)])
 def updateEvent(request, pk):
     try:
         # Buscamos el evento por el ID que viene en la URL
@@ -310,7 +318,16 @@ def updateEvent(request, pk):
         evento.title = data.get('title', evento.title)
         evento.background_color = data.get('background_color', evento.background_color)
         evento.extended_props = data.get('extended_props', evento.extended_props)
-
+        inicio = datetime.fromisoformat(evento.start)
+        fin = datetime.fromisoformat(evento.end)
+        duracion = fin - inicio
+        total_seconds = int(duracion.total_seconds())
+        horas = total_seconds // 3600
+        minutos = (total_seconds % 3600) // 60
+        segundos = total_seconds % 60
+        tc = f"{horas:02}:{minutos:02}:{segundos:02}:00"
+        duracion_ff = timecode_to_frames(tc)
+        evento.extended_props["duracion_ff"] = str(duracion_ff)
         evento.save()
         return Response({
             "message": "Evento actualizado correctamente",
@@ -324,7 +341,7 @@ def updateEvent(request, pk):
 
 # ---------------------- ACTUALIZACIÓN MASIVA (Shift + Drag) ----------------------
 @api_view(['PUT'])
-@permission_classes([IsAuthenticated & (IsOnAirLogger | IsAdminUser)])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger | IsAdminUser)])
 def bulkUpdate(request):
     eventos_data = request.data.get('eventos', [])
     
@@ -350,7 +367,7 @@ def bulkUpdate(request):
         return Response({"error": "Error al procesar la actualización masiva"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 @api_view(['DELETE', 'POST'])
-@permission_classes([IsAuthenticated & (IsOnAirLogger | IsAdminUser)])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger | IsAdminUser)])
 def bulkDelete(request):
     try:
         ids = request.data.get('ids')
@@ -369,7 +386,7 @@ def bulkDelete(request):
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 # ---------------------- EXPORTAR PARRILLA A PDF ----------------------
 @api_view(['POST'])
-@permission_classes([IsAuthenticated & (IsOnAirLogger | IsAdminUser)])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger | IsAdminUser)])
 def exportGridPDF(request):
     try:
         # 1. Recibimos los parámetros mínimos
@@ -415,7 +432,7 @@ def exportGridPDF(request):
         )
     
 @api_view(['DELETE'])
-@permission_classes([IsAuthenticated & (IsOnAirLogger | IsAdminUser)])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger | IsAdminUser)])
 def deleteEvent(request, pk):
     try:
         # 1. Buscamos el bloque

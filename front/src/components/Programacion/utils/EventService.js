@@ -81,3 +81,23 @@ export const bulkDeleteEventsInDB = async (apiUrl, token, idsArray) => {
     throw error;
   }
 };
+
+export const createPlaylist = async (apiUrl, token, eventoId, items) => {
+  const response = await axios.post(`${apiUrl}/programacion/savePlaylist/`, {
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Token ${token}`
+    },
+    body: JSON.stringify({
+      evento_id: eventoId,
+      items: items
+    })
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || "Error en el servidor");
+  }
+  
+  return await response.json();
+};

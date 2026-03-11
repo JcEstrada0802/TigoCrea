@@ -93,3 +93,26 @@ class Evento(models.Model):
 
     def __str__(self):
         return f"{self.title} - {self.calendario.nombre}"
+    
+class PlaylistItem(models.Model):
+    # Relación al bloque (Evento) y al clip (Segmento)
+    evento = models.ForeignKey('Evento', on_delete=models.CASCADE, related_name='playlist_items')
+    segmento = models.ForeignKey('catalogo.Segmento', on_delete=models.CASCADE, related_name='usado_en_items')
+
+    # El "Motor" de la lista
+    orden = models.PositiveIntegerField(default=0)
+    
+    # El cálculo del inicio lo hacemos en el Save o al exportar
+    # Guardarlo aquí ayuda a que el query sea flash
+    start_time_ff = models.BigIntegerField(default=0) 
+
+    # Los extras de negocio
+    custom_id = models.CharField(max_length=100, blank=True, null=True)
+    scotys = models.CharField(max_length=10, default="Off")
+    
+    # Los del jefe
+    tape = models.CharField(max_length=255, blank=True, null=True)
+    op_id = models.CharField(max_length=255, blank=True, null=True)
+
+    class Meta:
+        ordering = ['orden']

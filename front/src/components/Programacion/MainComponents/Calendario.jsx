@@ -101,9 +101,20 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
 
   // --- FUNCION PARA FETCHEAR EVENTS ---
   const fetchEvents = async () => {
+    // Obtenemos la API del calendario desde la referencia
+    const calendarApi = calendarRef.current?.getApi();
+    
+    // Si el calendario aún no carga, no hacemos nada
+    if (!calendarApi) return;
+
+    // Extraemos las fechas que el usuario está viendo actualmente
+    const { activeStart, activeEnd } = calendarApi.view;
+
     try {
       const res = await axios.post(apiUrl + '/programacion/getEventsByCalendar/', {
-        "calendar_id": selectedCalId
+        "calendar_id": selectedCalId,
+        "start_date": activeStart.toISOString(), // "2026-03-05T00:00:00.000Z"
+        "end_date": activeEnd.toISOString()
       }, {
         headers: { Authorization: `Token ${token}` }
       });
@@ -238,7 +249,7 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
     } catch (e) {
       info.event.remove();
       console.log(e)
-      alert("Error al guardar en el servidor");
+      showAlert('error', 'Error creando evento,');
     }
   };
 
@@ -262,6 +273,7 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
       } else {
         // PERSISTENCIA INDIVIDUAL (DRAG NORMAL O RESIZE)
         await updateEventInDB(apiUrl, token, info.event);
+        fetchEvents();
       }
     } catch (e) {
       // Si la red falla, revertimos el movimiento en el calendario
@@ -433,8 +445,7 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
   };
 
   const handleDeleteBlock = async(blockId) => {
-    try {
-      console.log("q onda")
+    try { 
       await axios.delete(`${apiUrl}/programacion/deleteEvent/${blockId}/`, {
         headers: { Authorization: `Token ${token}` }
       });
@@ -605,7 +616,6 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
           onDelete={handleDeleteBlock}
         />
       )}
-
       {fillModal?.show && (
         <FillBlockModal 
           event={fillModal.event}

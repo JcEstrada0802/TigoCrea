@@ -1,44 +1,39 @@
-import math
-
-def timecode_to_frames(tc_str):
-    try:
-        parts = tc_str.split(':')
-        
-        h = int(parts[0]) if len(parts) > 0 else 0
-        m = int(parts[1]) if len(parts) > 1 else 0
-        s = int(parts[2]) if len(parts) > 2 else 0
-        f = int(parts[3]) if len(parts) > 3 else 0
-
-        total_minutes = (60 * h) + m
-        frame_number = ((total_minutes * 60 + s) * 30) + f
-
-        drop_frames = 2 * (total_minutes - (total_minutes // 10))
-        frame_number -= drop_frames
-
-        return frame_number
-    except Exception:
-        return 0
+from timecode import Timecode
 
 def frames_to_timecode(frames):
-    """
-    Convierte cuadros totales a Timecode 29.97 Drop Frame (HH:MM:SS;FF).
-    """
-    # 1. Calculamos cuántos bloques de 10 minutos y cuántos minutos extra hay
-    total_minutes = frames // 1798
-    
-    # 2. Aplicamos la lógica de Drop Frame:
-    # Por cada 10 minutos (17982 frames), se "dropearon" 18 números (9 minutos x 2).
-    # Excepto en el minuto 0, 10, 20... donde NO se dropean.
-    
-    drop_frames = 2 * (total_minutes - (total_minutes // 10))
-    
-    # Agregamos los cuadros para "saltar" las etiquetas inexistentes
-    adjusted_frames = frames + drop_frames
+    # '29.97' activa automáticamente la lógica Drop Frame
+    # Sumamos 1 porque la librería cuenta desde 1 por defecto para el primer frame
+    tc = Timecode('29.97', frames=frames + 1)
+    tc = str(tc).replace(';',':')
+    return tc
 
-    # 3. Cálculo estándar base 30 con los frames ajustados
-    f = adjusted_frames % 30
-    s = (adjusted_frames // 30) % 60
-    m = (adjusted_frames // (30 * 60)) % 60
-    h = (adjusted_frames // (30 * 3600)) % 24
+def timecode_to_frames(tc_str, framerate=29.97):
+    try:
+        parts = tc_str.replace(';', ':').split(':')
+        h, m, s, f = map(int, parts)
 
-    return f"{h:02d}:{m:02d}:{s:02d}:{f:02d}"
+        # IDENTIFICACIÓN DE CASO ESPECIAL (Drop Frame)
+        # Si NO es minuto múltiplo de 10 (m%10 != 0)
+        # Y el usuario puso segundos 0 y frames 0 o 1
+        if m % 10 != 0 and s == 0 and f < 2:
+            # "Corregimos" la intención: 
+            # El usuario escribió 00:45:00:00 pero quiere 45 min reales.
+            # En 29.97 DF, el primer frame del minuto 45 es el :02.
+            f = 2 
+
+        # Cálculo de Heidelberger inverso
+        total_minutes = (60 * h) + m
+        # (h*3600 + m*60 + s) * 30 + f  <-- Esto es la etiqueta plana
+        frame_number = ((h * 3600 + m * 60 + s) * 30 + f)
+        
+        # Restamos los frames que el Drop Frame "se saltó"
+        drop_frames = 2 * (total_minutes - (total_minutes // 10))
+        
+        return int(frame_number - drop_frames)
+    except:
+        return 0
+
+"""def timecode_to_frames(tc_str):
+    # Convierte el string de vuelta a frames (0-based)
+    tc = Timecode('29.97', tc_str)
+    return tc.frame_number"""

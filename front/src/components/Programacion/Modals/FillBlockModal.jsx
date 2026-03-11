@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { FaTimes, FaLayerGroup, FaTrash, FaListOl, FaSave, FaExclamationTriangle, FaCheckCircle } from 'react-icons/fa';
 import CatalogManager from "../MainComponents/CatalogManager";
+import { createPlaylist } from '../utils/EventService';
 
 function FillBlockModal({ event, onClose }) {
   const [datosCatalogo, setDatosCatalogo] = useState([]);
@@ -26,13 +27,24 @@ function FillBlockModal({ event, onClose }) {
     return frames < 0 ? `-${tc}` : tc;
   }, []);
 
-  // --- CÁLCULOS DE PLAYLIST ---
+  // --- CÁLCULOS DE PLAYLIST CON END TIME ---
   const playlistConTiempos = useMemo(() => {
     let currentFrameOffset = 0;
     return playlist.map((item) => {
       const startTC = formatOffsetToTC(currentFrameOffset);
-      const data = { ...item, startTC };
-      currentFrameOffset += item.duracion;
+      const endFrameOffset = currentFrameOffset + item.duracion;
+      const endTC = formatOffsetToTC(endFrameOffset);
+      
+      const data = { 
+        ...item, 
+        startTC, 
+        endTC,
+        // Inicializamos valores si no existen
+        customID: item.customID || "",
+        scotys: item.scotys || "Off"
+      };
+      
+      currentFrameOffset = endFrameOffset;
       return data;
     });
   }, [playlist, formatOffsetToTC]);
@@ -52,7 +64,13 @@ function FillBlockModal({ event, onClose }) {
     };
   }, [playlist, event, formatOffsetToTC]);
 
-  // --- FETCH CATALOGO ---
+  // --- HANDLERS DE EDICIÓN EN LÍNEA ---
+  const updatePlaylistItem = (uid, field, value) => {
+    setPlaylist(prev => prev.map(item => 
+      item.uniqueId === uid ? { ...item, [field]: value } : item
+    ));
+  };
+
   useEffect(() => {
     const fetchRealCatalog = async () => {
       setLoading(true);
@@ -72,15 +90,40 @@ function FillBlockModal({ event, onClose }) {
   }, [apiUrl, token]);
 
   const handleAddSegment = useCallback((seg) => {
-    setPlaylist(prev => [...prev, { ...seg, uniqueId: `${seg.id}-${Date.now()}-${Math.random()}` }]);
+    setPlaylist(prev => [...prev, { 
+      ...seg, 
+      uniqueId: `${seg.id}-${Date.now()}-${Math.random()}`,
+      customID: "",
+      scotys: "Off"
+    }]);
   }, []);
 
   const removeItem = useCallback((uid) => {
     setPlaylist(prev => prev.filter(item => item.uniqueId !== uid));
   }, []);
 
+  const SavePlaylist = async() => {
+    const dataToSave = playlistConTiempos.map((item, index) => ({
+      segmento_id: item.id, // El ID de la tabla Segmento
+      orden: index,
+      custom_id: item.customID,
+      scotys: item.scotys,
+      tape: item.tape,
+      // Aquí podrías agregar tape y op_id si ya los tenés
+    }));
+
+    try {
+      // Mandamos el ID del bloque (evento) y la lista de items
+      await createPlaylist(apiUrl, token, event.id, dataToSave);
+      alert("¡Playlist guardada con éxito, mijo!");
+      onClose();
+    } catch (error) {
+      alert("Valió barriga, no se guardó.");
+    }
+  }
+
   return (
-    <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 font-sans">
+    <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 font-sans text-slate-700">
       <div className="bg-white dark:bg-slate-900 w-full max-w-[95vw] h-[92vh] rounded-xl shadow-2xl overflow-hidden flex flex-col border border-gray-200 dark:border-slate-700">
         
         {/* HEADER */}
@@ -126,26 +169,71 @@ function FillBlockModal({ event, onClose }) {
                   <thead className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700 font-mono text-[9px] text-slate-400 uppercase tracking-wider">
                     <tr>
                       <th className="px-3 py-2 w-10 text-center">#</th>
-                      <th className="px-3 py-2 w-28">Start Time</th>
-                      <th className="px-2 py-2 w-8 text-center">Cat</th>
-                      <th className="px-3 py-2">Title / ID Media</th>
-                      <th className="px-3 py-2 w-28 text-right">Duration</th>
-                      <th className="px-3 py-2 w-16 text-center">Action</th>
+                      <th className="px-3 py-2 w-28 text-center">Start Time</th>
+                      <th className="px-3 py-2 w-28 text-center">End Time</th>
+                      <th className="px-3 py-2 w-28 text-right">Duración</th>
+                      <th className="px-3 py-2">Título / ID Media</th>
+                      <th className="px-2 py-2 w-16 text-center">ID</th>
+                      <th className="px-2 py-2 w-20 text-center">Scotys</th>
+                      <th className="px-2 py-2 w-10 text-center">Cat</th>
+                      <th className="px-3 py-2 w-16 text-center">Acción</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                     {playlistConTiempos.map((item, index) => (
                       <tr key={item.uniqueId} className="group hover:bg-blue-50/40 dark:hover:bg-blue-900/5 transition-colors border-l-4" style={{ borderLeftColor: item.cat_color }}>
                         <td className="px-3 py-1.5 text-[9px] font-mono text-slate-400 text-center">{index + 1}</td>
-                        <td className="px-3 py-1.5 font-mono text-[11px] font-bold text-blue-600">{item.startTC}</td>
-                        <td className="px-2 py-1.5 text-center"><div className="w-2 h-2 rounded-full mx-auto" style={{ backgroundColor: item.cat_color }} /></td>
-                        <td className="px-3 py-1.5 truncate">
-                          <div className="flex flex-col"><span className="text-[10px] font-bold text-slate-700 dark:text-slate-200 uppercase truncate">{item.titulo}</span>
-                          <span className="text-[8px] text-slate-400 font-mono">{item.id_media}</span></div>
+
+                        <td className="px-3 py-1.5 font-mono text-[11px] font-bold text-blue-600 text-center">{item.startTC}</td>
+                        <td className="px-3 py-1.5 font-mono text-[11px] font-bold text-slate-500 dark:text-slate-400 text-center">{item.endTC}</td>
+                        <td className="px-3 py-1.5 text-right font-mono">
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300">{item.duracion_tc}</span>
+                            <span className="text-[8px] text-slate-400">{item.duracion} ff</span>
+                          </div>
                         </td>
-                        <td className="px-3 py-1.5 text-right font-mono"><div className="flex flex-col"><span className="text-[10px] font-bold text-slate-600 dark:text-slate-300">{item.duracion_tc}</span>
-                        <span className="text-[8px] text-slate-400">{item.duracion} ff</span></div></td>
-                        <td className="px-3 py-1.5 text-center"><button onClick={() => removeItem(item.uniqueId)} className="p-1 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><FaTrash size={10} /></button></td>
+                        
+                        <td className="px-3 py-1.5 truncate">
+                          <div className="flex flex-col">
+                            <span className="text-[10px] font-bold text-slate-700 dark:text-slate-200 uppercase truncate">{item.titulo}</span>
+                            <span className="text-[8px] text-slate-400 font-mono">{item.id_media}</span>
+                          </div>
+                        </td>
+                        {/* INPUT ID */}
+                        <td className="px-2 py-1.5">
+                          <input 
+                            type="text"
+                            value={item.customID}
+                            onChange={(e) => updatePlaylistItem(item.uniqueId, 'customID', e.target.value)}
+                            placeholder="---"
+                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1 py-0.5 text-[10px] font-mono text-center focus:outline-none focus:border-blue-500 dark:text-slate-200 transition-colors"
+                          />
+                        </td>
+
+                        {/* DROPDOWN SCOTYS */}
+                        <td className="px-2 py-1.5 text-center">
+                          <select 
+                            value={item.scotys}
+                            onChange={(e) => updatePlaylistItem(item.uniqueId, 'scotys', e.target.value)}
+                            className="bg-slate-100 dark:bg-slate-800 border-none rounded text-[9px] font-bold uppercase px-2 py-1 cursor-pointer focus:ring-1 focus:ring-blue-500 dark:text-slate-300"
+                          >
+                            <option value="On">On</option>
+                            <option value="Off">Off</option>
+                          </select>
+                        </td>
+
+                        <td className="px-2 py-1.5 text-center">
+                          <div className="w-2.5 h-2.5 rounded-full mx-auto shadow-sm" style={{ backgroundColor: item.cat_color }} />
+                        </td>
+
+                        <td className="px-3 py-1.5 text-center">
+                          <button 
+                            onClick={() => removeItem(item.uniqueId)} 
+                            className="p-1.5 bg-gray-200 dark:bg-slate-800 rounded group-hover:opacity-100 transition-all hover:bg-gray-300 dark:hover:bg-slate-700"
+                          >
+                            <FaTrash size={10} className="text-slate-500 hover:text-red-500 transition-colors"/>
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -155,7 +243,7 @@ function FillBlockModal({ event, onClose }) {
           </div>
         </div>
 
-        {/* FOOTER - COMPARATIVA TÉCNICA */}
+        {/* FOOTER */}
         <div className="px-8 py-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center shadow-inner">
           <div className="flex gap-10">
             <div className="flex flex-col">
@@ -174,9 +262,9 @@ function FillBlockModal({ event, onClose }) {
           </div>
 
           <div className="flex items-center gap-3">
-            <button onClick={onClose} className="px-6 py-2 text-[10px] font-bold !text-slate-400 hover:!text-slate-600 tracking-widest">Cancelar</button>
+            <button onClick={onClose} className="px-6 py-2 text-[10px] font-bold text-slate-400 hover:text-slate-600 tracking-widest transition-colors">Cancelar</button>
             <button className="px-10 py-3 !bg-blue-600 !text-white rounded-lg shadow-xl shadow-blue-500/30 hover:!bg-blue-700 active:scale-95 transition-all flex items-center gap-3 font-black text-[10px] tracking-[0.2em]"
-                    onClick={() => console.log("GUARDAR:", playlist)}>
+              onClick={SavePlaylist}>
               <FaSave size={14} /> Guardar
             </button>
           </div>

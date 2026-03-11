@@ -1,15 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { Download, Save } from 'lucide-react';
-import { FaFilePdf } from 'react-icons/fa';
+import { FaFilePdf, FaBroadcastTower } from 'react-icons/fa';
 import ImportTemplateModal from '../Modals/ImportTemplateModal';
 import CreateTemplateModal from '../Modals/CreateTemplateModal';
 import ExportGridModal from '../Modals/ExportGridModal';
+import ExportClfModal from '../Modals/ExportClfModal';
+import { AuthContext } from '../../authComponents/AuthContext'
 
-const TemplateControls = ({ onConfirmImport, onConfirmExport, onConfirmPDF }) => {
+const TemplateControls = ({ onConfirmImport, onConfirmExport, onConfirmPDF, onConfirmClf }) => {
   const [showImport, setShowImport] = useState(false);
   const [showSave, setShowSave] = useState(false);
   const [showExport, setShowExport] = useState(false);
+  const [showExportCLF, setShowExportCLF] = useState(false);
   const [modalPos, setModalPos] = useState({ top: 0, left: 0 });
+  const { user } = useContext(AuthContext);
+
   
 
   const handleOpen = (e, setter) => {
@@ -52,6 +57,14 @@ const TemplateControls = ({ onConfirmImport, onConfirmExport, onConfirmPDF }) =>
         >
           <FaFilePdf size={18} />
         </button>
+
+        {/* Botón para exportar Grid */}
+        {(user?.is_superuser || user?.groups?.includes("AdLogger"))&&(<button 
+          onClick={(e)=> handleOpen(e, setShowExportCLF)} 
+          className="flex items-center gap-1 px-2 py-1 hover:bg-blue-50 rounded-full text-[#001EB4] transition-all active:scale-95 font-bold text-[10px] whitespace-nowrap"
+        >
+          <FaBroadcastTower size={18} />
+        </button>)}
       </div>
 
       {/* Renderizamos el Modal aquí mismo */}
@@ -73,6 +86,13 @@ const TemplateControls = ({ onConfirmImport, onConfirmExport, onConfirmPDF }) =>
         isVisible={showExport}
         onClose={()=>setShowExport(false)}
         onExport={onConfirmPDF}
+        position={modalPos}
+      />
+
+      <ExportClfModal
+        isVisible={showExportCLF}
+        onClose={()=>setShowExportCLF(false)}
+        onExport={onConfirmClf}
         position={modalPos}
       />
     </div>

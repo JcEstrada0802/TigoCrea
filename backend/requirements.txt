@@ -98,6 +98,7 @@ sortedcontainers==2.4.0
 sqlparse==0.5.3
 svglib==1.6.0
 tenacity==9.1.2
+timecode==1.5.1
 tinycss2==1.4.0
 tinyhtml5==2.0.0
 tomli==2.4.0
