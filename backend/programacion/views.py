@@ -5,7 +5,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework import status
-from .models import BloqueCategoria, Bloque, Template, Calendario, Evento
+from .models import BloqueCategoria, Bloque, Template, Calendario, Evento, PlaylistItem
 from .serializers import *
 from catalogo.utils.timeToFrame import timecode_to_frames
 from backend.permissions import *
@@ -463,3 +463,71 @@ def deleteEvent(request, pk):
             {"error": f"Error inesperado: {str(e)}"}, 
             status=status.HTTP_400_BAD_REQUEST
         )
+    
+@api_view(['POST'])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger | IsAdminUser)])
+def savePlaylist(request):
+    try:
+        evento_id = request.data.get("evento_id")
+        items = request.data.get("items",[])
+        if not evento_id:
+            return Response({"error", "Falta 'evento_id'"},
+                            status=status.HTTP_400_BAD_REQUEST)
+        with transaction.atomic():
+
+            evento = Evento.objects.filter(id=evento_id).first()
+            PlaylistItem.objects.filter(evento=evento).delete()
+
+            if not evento:
+                return Response({"error": "El evento no existe"}, status=status.HTTP_404_NOT_FOUND)
+        
+            items_a_crear = []
+            for item in items:
+                items_a_crear.append(PlaylistItem(
+                    evento = evento,
+                    segmento_id = item.get('segmento_id'),
+                    orden = item.get('orden'),
+                    start_time_ff = item.get('start_relativo'),
+                    custom_id = item.get('custom_id'),
+                    scotys = item.get('scotys'),
+                    # AGREGAR TAPE Y OP_ID EN UN FUTURO
+                ))
+
+            PlaylistItem.objects.bulk_create(items_a_crear)
+        return Response({"message": f"{len(items_a_crear)} eventos creados"}, 
+                        status=status.HTTP_201_CREATED)
+    except Exception as e:
+        return Response(
+            {"error": f"Error inesperado: {str(e)}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger | IsAdminUser)])
+def getPlaylist(request, pk):
+    try:
+        # 1. Verificamos si el evento existe
+        evento = Evento.objects.filter(id=pk).first()
+        if not evento:
+            return Response({"error": "El bloque de programación no existe."}, 
+                            status=status.HTTP_404_NOT_FOUND)
+        
+        # 2. Jalamos los items. 
+        # Usamos select_related para traer de un solo golpe la info del segmento,
+        # producción, contenido y categoría (evita el problema N+1).
+        items = PlaylistItem.objects.filter(evento=evento).select_related(
+            'segmento__produccion__contenido__categoria'
+        ).order_by('orden')
+
+        # 3. Serializamos la lista de items
+        serializer = PlaylistItemSerializer(items, many=True)
+
+        # 4. Retornamos la data nítida para React
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        # Corregí el error de sintaxis en tu diccionario de error (usabas coma en vez de dos puntos)
+        return Response(
+            {"error": f"Error inesperado al obtener la playlist: {str(e)}"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+    

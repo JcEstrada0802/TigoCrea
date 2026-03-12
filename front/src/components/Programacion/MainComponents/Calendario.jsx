@@ -620,6 +620,7 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
         <FillBlockModal 
           event={fillModal.event}
           onClose={()=> setFillModal({...fillModal, show: false})}
+          showAlert={showAlert}
           // DEBO AGREGAR FUNCION PARA GUARDAR EL BLOQUE YA LLENO
         />
       )}

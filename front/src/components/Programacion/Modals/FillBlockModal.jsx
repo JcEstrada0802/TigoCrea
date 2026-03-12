@@ -3,7 +3,7 @@ import { FaTimes, FaLayerGroup, FaTrash, FaListOl, FaSave, FaExclamationTriangle
 import CatalogManager from "../MainComponents/CatalogManager";
 import { createPlaylist } from '../utils/EventService';
 
-function FillBlockModal({ event, onClose }) {
+function FillBlockModal({ event, onClose, showAlert }) {
   const [datosCatalogo, setDatosCatalogo] = useState([]);
   const [loading, setLoading] = useState(true);
   const [playlist, setPlaylist] = useState([]);
@@ -32,11 +32,13 @@ function FillBlockModal({ event, onClose }) {
     let currentFrameOffset = 0;
     return playlist.map((item) => {
       const startTC = formatOffsetToTC(currentFrameOffset);
+      const startTC_FF = currentFrameOffset;
       const endFrameOffset = currentFrameOffset + item.duracion;
       const endTC = formatOffsetToTC(endFrameOffset);
       
       const data = { 
         ...item, 
+        startTC_FF,
         startTC, 
         endTC,
         // Inicializamos valores si no existen
@@ -103,9 +105,11 @@ function FillBlockModal({ event, onClose }) {
   }, []);
 
   const SavePlaylist = async() => {
+    console.log("Saved:", playlistConTiempos)
     const dataToSave = playlistConTiempos.map((item, index) => ({
       segmento_id: item.id, // El ID de la tabla Segmento
       orden: index,
+      start_relativo: item.startTC_FF,
       custom_id: item.customID,
       scotys: item.scotys,
       tape: item.tape,
@@ -114,13 +118,43 @@ function FillBlockModal({ event, onClose }) {
 
     try {
       // Mandamos el ID del bloque (evento) y la lista de items
-      await createPlaylist(apiUrl, token, event.id, dataToSave);
-      alert("¡Playlist guardada con éxito, mijo!");
+      const response = await createPlaylist(apiUrl, token, event.id, dataToSave);
+      showAlert('success', 'Evento actualizado correctamente.');
       onClose();
     } catch (error) {
-      alert("Valió barriga, no se guardó.");
+      showAlert('error', 'Error al actualizar el evento.');
     }
   }
+
+  useEffect(() => {
+  const loadSavedPlaylist = async () => {
+    if (!event?.id) return;
+    
+    try {
+      const response = await fetch(`${apiUrl}/programacion/getPlaylist/${event.id}/`, {
+        headers: { 'Authorization': `Token ${token}` }
+      });
+      
+      if (response.ok) {
+        const savedData = await response.json();
+        
+        // Mapeamos para agregar el uniqueId que React necesita para el drag & drop
+        const formattedPlaylist = savedData.map(item => ({
+          ...item,
+          uniqueId: `${item.id}-${Date.now()}-${Math.random()}`
+          // No calculamos startTC/endTC aquí porque tu useMemo 'playlistConTiempos'
+          // lo hará automáticamente al detectar que 'playlist' cambió.
+        }));
+        console.log("fetched: ", formattedPlaylist);
+        setPlaylist(formattedPlaylist);
+      }
+    } catch (error) {
+      console.error("Error al cargar la playlist guardada:", error);
+    }
+  };
+
+  loadSavedPlaylist();
+}, [event?.id, apiUrl, token]);
 
   return (
     <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 font-sans text-slate-700">
