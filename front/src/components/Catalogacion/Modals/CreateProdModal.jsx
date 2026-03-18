@@ -19,6 +19,7 @@ function CreateProdModal({ isOpen, onClose, onFinish, selectedCont, config }) {
   const [contenidoId, setContenidoId] = useState('');
   const [duracion, setDuracion] = useState('00:00:00'); // Formato DurationField
   const [origen, setOrigen] = useState('');
+  const [tipo, setTipo] = useState('');
   const [contenidosList, setContenidosList] = useState([]);
 
   useEffect(() => {
@@ -43,6 +44,7 @@ function CreateProdModal({ isOpen, onClose, onFinish, selectedCont, config }) {
             setContenidoId(prod.contenido_id); 
             setOrigen(prod.origen);
             setDuracion(prod.duracion_total);
+            setTipo(prod.tipo);
           }
         } else {
           // Reset para creación
@@ -50,6 +52,7 @@ function CreateProdModal({ isOpen, onClose, onFinish, selectedCont, config }) {
           setContenidoId(selectedCont || '');
           setDuracion('00:00:00:00');
           setOrigen('');
+          setTipo('');
         }
       } catch (error) {
         console.error("Error al preparar el modal:", error);
@@ -73,7 +76,8 @@ function CreateProdModal({ isOpen, onClose, onFinish, selectedCont, config }) {
         titulo: titulo,
         contenido_id: contenidoId, // ID de la Foreign Key
         duracion_total: duracion,  // String "HH:MM:SS"
-        origen: origen
+        origen: origen,
+        tipo: tipo
       };
 
       if (isUpdating) {
@@ -153,6 +157,26 @@ function CreateProdModal({ isOpen, onClose, onFinish, selectedCont, config }) {
                   <option value="Servidor">Servidor</option>
                 </select>
                 <span>Origen*</span>
+              </label>
+
+              {/* Tipo (Mapea a type) */}
+              <label>
+                <CircleStackIcon className="input-icon" />
+                <select 
+                  className="input" 
+                  value={tipo} 
+                  onChange={(e) => setTipo(e.target.value)}
+                  required
+                >
+                  <option value="" disabled hidden></option>
+                  <option value="PROGRAMA">PROGRAMA</option>
+                  <option value="DEPORTE">DEPORTE</option>
+                  <option value="ID">ID</option>
+                  <option value="BUMPER">BUMPER</option>
+                  <option value="PUBLICIDAD">PUBLICIDAD</option>
+                  <option value="LIVE EVENT">LIVE EVENT</option>
+                </select>
+                <span>Tipo</span>
               </label>
 
               {/* Duración (Mapea a DurationField) */}

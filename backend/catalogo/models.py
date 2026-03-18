@@ -48,6 +48,7 @@ class Produccion(models.Model):
         on_delete=models.CASCADE, 
         related_name='producciones'
     )
+    type = models.CharField(max_length=255, default="")
 
     def __str__(self):
         return self.titulo
@@ -65,6 +66,7 @@ class Segmento(models.Model):
     tc_in = models.BigIntegerField(default=0)
     tc_out = models.BigIntegerField(default=0)
     notas = models.CharField(max_length=255, blank=True, null=True) # REMOVER ESTE CAMPO
+    
     produccion = models.ForeignKey(
         Produccion, 
         on_delete=models.CASCADE, 

@@ -1,17 +1,19 @@
 from django.shortcuts import render
 from django.db import transaction
+from django.db.models import Prefetch
 from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework import status
 from .models import BloqueCategoria, Bloque, Template, Calendario, Evento, PlaylistItem
 from .serializers import *
 from catalogo.utils.timeToFrame import timecode_to_frames
 from backend.permissions import *
-from .tasks import renderGridPDF
+from .tasks import renderGridPDF, generate_castlist_xml
 from datetime import datetime
-from django.http import JsonResponse
+from celery.result import AsyncResult
+from django.http import HttpResponse
 
 import os
 import base64
@@ -70,6 +72,7 @@ def createBlock(request):
         tc_real = data.get('duracion_real')
         notas = data.get('notas', '')
         categoria_id = data.get('categoria_id')
+        print(tc_teorico)
         if not all([nombre, tc_teorico, categoria_id]):
             return Response({
                 "error": "Faltan campos obligatorios: nombre, duracion_teorica (TC) y categoria_id."
@@ -78,8 +81,8 @@ def createBlock(request):
             categoria = BloqueCategoria.objects.get(id=categoria_id)
         except BloqueCategoria.DoesNotExist:
             return Response({"error": "La categoría especificada no existe."}, status=status.HTTP_404_NOT_FOUND)
-        frames_teoricos = timecode_to_frames(tc_teorico)
-        frames_reales = timecode_to_frames(tc_real) if tc_real else 0
+        frames_teoricos = timecode_to_frames(tc_teorico+":00")
+        frames_reales = timecode_to_frames(tc_real+"00") if tc_real else 0
         nuevo_bloque = Bloque.objects.create(
             nombre=nombre,
             duracion_teorica=frames_teoricos,
@@ -313,13 +316,15 @@ def updateEvent(request, pk):
 
         # Actualizamos los campos
         # Usamos .get(campo, valor_actual) para no borrar datos si no vienen en el JSON
-        evento.start = data.get('start', evento.start)
-        evento.end = data.get('end', evento.end)
+        start_val = data.get('start', evento.start)
+        end_val = data.get('end', evento.end)
         evento.title = data.get('title', evento.title)
         evento.background_color = data.get('background_color', evento.background_color)
         evento.extended_props = data.get('extended_props', evento.extended_props)
-        inicio = datetime.fromisoformat(evento.start)
-        fin = datetime.fromisoformat(evento.end)
+        inicio = datetime.fromisoformat(start_val) if isinstance(start_val, str) else start_val
+        fin = datetime.fromisoformat(end_val) if isinstance(end_val, str) else end_val
+        evento.start = inicio
+        evento.end = fin
         duracion = fin - inicio
         total_seconds = int(duracion.total_seconds())
         horas = total_seconds // 3600
@@ -384,7 +389,7 @@ def bulkDelete(request):
         }, status=status.HTTP_200_OK)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-# ---------------------- EXPORTAR PARRILLA A PDF ----------------------
+# ---------------------------- EXPORTAR PARRILLA A PDF ----------------------------
 @api_view(['POST'])
 @permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger | IsAdminUser)])
 def exportGridPDF(request):
@@ -464,6 +469,7 @@ def deleteEvent(request, pk):
             status=status.HTTP_400_BAD_REQUEST
         )
     
+# ------------------ Guatdar playlist de un evento en especifico ------------------
 @api_view(['POST'])
 @permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger | IsAdminUser)])
 def savePlaylist(request):
@@ -487,6 +493,7 @@ def savePlaylist(request):
                     evento = evento,
                     segmento_id = item.get('segmento_id'),
                     orden = item.get('orden'),
+                    tape = item.get('tape'),
                     start_time_ff = item.get('start_relativo'),
                     custom_id = item.get('custom_id'),
                     scotys = item.get('scotys'),
@@ -501,6 +508,7 @@ def savePlaylist(request):
             {"error": f"Error inesperado: {str(e)}"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
+# ------------------ Obtener playlist de un Evento en especifico ------------------
 @api_view(['GET'])
 @permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger | IsAdminUser)])
 def getPlaylist(request, pk):
@@ -530,4 +538,50 @@ def getPlaylist(request, pk):
             {"error": f"Error inesperado al obtener la playlist: {str(e)}"},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+    
+@api_view(['POST'])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger | IsAdminUser)])
+def exportPlaylist(request):
+    fecha = request.data.get('fecha')
+    calendar_id = request.data.get('calendar_id')
+    
+    if not calendar_id:
+        return Response({"error","Faltan campos. Campos necesarios: 'calendar_id', 'fecha'"},
+                        status=status.HTTP_400_BAD_REQUEST)
+    try:
+        # Mandamos a llamar la tarea de Celery de forma asíncrona
+        # .delay() es lo que mete la tarea a la cola (Redis/RabbitMQ)
+        task = generate_castlist_xml.delay(calendar_id, fecha)
+
+        return Response({
+            "message": "Exportación iniciada en segundo plano.",
+            "task_id": task.id
+        }, status=status.HTTP_202_ACCEPTED)
+
+    except Exception as e:
+        return Response({"error", "Error inesperado en el servidor."},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def getPlaylistCLF(request):
+    try:
+        task_id = request.query_params.get('taskId')
+        task = AsyncResult(task_id)
+        clf_binary = task.result
+
+        fecha_archivo = "export"
+        if task.args and len(task.args) > 1:
+            fecha_archivo = task.args[1]
+
+        response = HttpResponse(clf_binary, content_type='application/xml')
+        response['Content-Disposition'] = f'attachment; filename="playlist_{fecha_archivo}.clf"'
+        return response
+
+    except Exception as e:
+        return Response(
+            {'error': str(e), 'message': 'No se pudo consultar el estado de la tarea.'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
     

@@ -208,6 +208,7 @@ function FillBlockModal({ event, onClose, showAlert }) {
                       <th className="px-3 py-2 w-28 text-right">Duración</th>
                       <th className="px-3 py-2">Título / ID Media</th>
                       <th className="px-2 py-2 w-16 text-center">ID</th>
+                      <th className="px-2 py-2 w-30 text-center">Tape</th>
                       <th className="px-2 py-2 w-20 text-center">Scotys</th>
                       <th className="px-2 py-2 w-10 text-center">Cat</th>
                       <th className="px-3 py-2 w-16 text-center">Acción</th>
@@ -240,6 +241,17 @@ function FillBlockModal({ event, onClose, showAlert }) {
                             value={item.customID}
                             onChange={(e) => updatePlaylistItem(item.uniqueId, 'customID', e.target.value)}
                             placeholder="---"
+                            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1 py-0.5 text-[10px] font-mono text-center focus:outline-none focus:border-blue-500 dark:text-slate-200 transition-colors"
+                          />
+                        </td>
+
+                        {/* INPUT TAPE */}
+                        <td className="px-2 py-1.5">
+                          <input 
+                            type="text"
+                            value={item.tape}
+                            onChange={(e) => updatePlaylistItem(item.uniqueId, 'tape', e.target.value)}
+                            placeholder="N° Cinta"
                             className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1 py-0.5 text-[10px] font-mono text-center focus:outline-none focus:border-blue-500 dark:text-slate-200 transition-colors"
                           />
                         </td>

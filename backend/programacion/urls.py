@@ -19,4 +19,6 @@ urlpatterns = [
     path('exportGridPDF/', exportGridPDF, name='exportGridPDF'),                        #EXPORT
     path('savePlaylist/', savePlaylist, name='savePlaylist'),
     path('getPlaylist/<int:pk>/', getPlaylist, name='getPlaylist'),
+    path('exportPLaylist/', exportPlaylist, name='exportPlaylist'),
+    path('getPlaylistCLF/', getPlaylistCLF, name='getPlaylistCLF'),
 ]

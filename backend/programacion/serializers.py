@@ -1,6 +1,6 @@
 from rest_framework import serializers
-from .models import Bloque, BloqueCategoria, PlaylistItem
-from catalogo.Serializers import SegmentoSerializer # Importamos el tuyo
+from .models import Bloque, BloqueCategoria, PlaylistItem, Evento
+from catalogo.Serializers import SegmentoSerializer
 from catalogo.utils.timeToFrame import frames_to_timecode
 
 class BloqueSerializer(serializers.ModelSerializer):
@@ -58,4 +58,34 @@ class PlaylistItemSerializer(serializers.ModelSerializer):
         
         return representation
 
-        
+class ExportItemSerializer(serializers.ModelSerializer):
+    # Jalamos datos del segmento haciendo el "join" manual por medio de source
+    id_media = serializers.ReadOnlyField(source='segmento.id_media')
+    duracion = serializers.ReadOnlyField(source='segmento.duracion')
+    titulo = serializers.ReadOnlyField(source='segmento.titulo')
+    tipo = serializers.ReadOnlyField(source='segmento.origen')
+
+    class Meta:
+        model = PlaylistItem
+        fields = [
+            'start_time_ff',
+            'id_media',
+            'titulo',
+            'scotys',
+            'tape',
+            'op_id',
+            'duracion'
+        ]
+
+class ExportEventoSerializer(serializers.ModelSerializer):
+    # 'playlist_items' es el related_name que tenés en tu modelo PlaylistItem
+    items = ExportItemSerializer(many=True, source='playlist_items', read_only=True)
+    
+    class Meta:
+        model = Evento
+        fields = [
+            'start',
+            'title',
+            'background_color',
+            'items'
+        ]

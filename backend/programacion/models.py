@@ -24,9 +24,7 @@ class Bloque(models.Model):
         on_delete=models.PROTECT, 
         related_name='bloques'
     )
-    
-    # Duración Teórica (Lo que debería durar el bloque en la parrilla)
-    # Se guarda en cuadros (frames) para mantener la precisión SMPTE
+
     duracion_teorica = models.BigIntegerField(
         default=0,
         validators=[MinValueValidator(0)],
@@ -40,7 +38,6 @@ class Bloque(models.Model):
         verbose_name="Duración Real (Frames)"
     )
 
-    # Metadata extra para el .clf
     notas = models.TextField(blank=True, null=True, help_text="Comentarios para el operador")
 
     def __str__(self):
@@ -87,8 +84,6 @@ class Evento(models.Model):
     start = models.DateTimeField()
     end = models.DateTimeField()
     background_color = models.CharField(max_length=7, default='#001EB4')
-    
-    # Aquí guardamos el objeto con: categoria, contenido, produccion, etc.
     extended_props = models.JSONField(default=dict, blank=True)
 
     def __str__(self):
@@ -99,7 +94,7 @@ class PlaylistItem(models.Model):
     evento = models.ForeignKey('Evento', on_delete=models.CASCADE, related_name='playlist_items')
     segmento = models.ForeignKey('catalogo.Segmento', on_delete=models.CASCADE, related_name='usado_en_items')
 
-    # El "Motor" de la lista
+    # El orden de la lista
     orden = models.PositiveIntegerField(default=0)
     
     # El cálculo del inicio lo hacemos en el Save o al exportar

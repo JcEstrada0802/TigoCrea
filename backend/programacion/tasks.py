@@ -4,7 +4,12 @@ from celery import shared_task
 from django.template.loader import render_to_string
 from weasyprint import HTML
 from .models import Evento
-from datetime import time
+import time as tm
+import urllib.parse
+from django.db.models import Prefetch
+from .models import Evento, PlaylistItem
+import io
+from lxml import etree
 
 @shared_task
 def renderGridPDF(context):
@@ -61,3 +66,89 @@ def renderGridPDF(context):
     except Exception as e:
         print(traceback.format_exc())
         raise e
+    
+@shared_task
+def generate_castlist_xml(calendar_id, fecha):
+    try:
+        current_time = tm.time()
+        eventos = Evento.objects.filter(
+            calendario_id=calendar_id,
+            start__date=fecha
+        ).prefetch_related(
+            Prefetch(
+                'playlist_items', 
+                queryset=PlaylistItem.objects.select_related('segmento').order_by('orden')
+            )
+        ).order_by('start')
+
+        xml_lines = [
+            '<?xml version="1.0" encoding="UTF-8"?>',
+            f'<castlist fps="30M" list_upload_time="{current_time}">'
+        ]
+
+        item_counter = 0
+
+        for evento in eventos:
+            group_name = urllib.parse.quote(evento.title)
+            event_color = urllib.parse.quote(evento.background_color)
+
+            for item in evento.playlist_items.all():
+                uri = urllib.parse.quote(item.segmento.id_media)
+                duration = item.segmento.duracion
+                
+                start_time = '00:00:00' if item_counter == 0 else ""
+                start_date = fecha if item_counter == 0 else ""
+                scoty = item.scotys
+                scoty = "Show" if scoty == "On" else "Hide"
+                op_id = item.custom_id
+                tape = urllib.parse.quote(item.tape) if (item.tape!=None) else ""
+                notas = urllib.parse.quote(item.segmento.notas) if (item.segmento.notas!=None) else ""
+                type = urllib.parse.quote(item.segmento.produccion.type) if (item.segmento.produccion.type!=None) else ""
+                
+                item_xml = f'''  <item uri="{uri}"
+            start_type="Seq"
+            start_time="{start_time}"
+            start_date="{start_date}"
+            tc_orig=""
+            in_point="0"
+            out_point="{duration}"
+            duration="{duration}"
+            key1_mode="{scoty}"
+            trans_mode="Cut"
+            trans_speed="Cut"
+            lead_out="0"
+            title="{uri}"
+            comment="{notas}"
+            group="{group_name}"
+            type="{type}"
+            tape_name="{tape}" 
+            item_id="{op_id}"
+            item_color="{event_color}"
+            end_mode="none"
+            tape_type="digital">
+    </item>'''
+                #Adelantar Manejo de:
+                    #type - Agregar al catalogo
+                    #Scotys - key1_mode (show o hide)
+                    #item_id - op_id
+                    #tape_name - tape
+                xml_lines.append(item_xml)
+                item_counter += 1
+
+        xml_lines.append('</castlist>')
+        
+        final_xml = "\n".join(xml_lines)
+        
+        xml_output = io.BytesIO()
+        xml_output.write(final_xml.encode('utf-8'))
+        xml_output.seek(0)
+        return xml_output.getvalue()
+
+    except Exception as e:
+        print(f"Error en generate_castlist_xml: {e}")
+        raise e    
+
+    # 3. Aquí podrías guardar el archivo en disco o S3
+    # Por ahora, Celery puede retornar el string o la ruta del archivo guardado
+    #file_path = f"exports/playlist_{fecha}_{calendar_id}.xml"
+    # (Aquí iría tu lógica de guardado: open(file_path, 'w').write(final_xml))

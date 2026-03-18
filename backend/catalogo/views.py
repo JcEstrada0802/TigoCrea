@@ -117,6 +117,7 @@ def createProduccion(request):
         duracion_total = request.data.get('duracion_total')
         origen = request.data.get('origen')
         contenido_id = request.data.get('contenido_id')
+        tipo = request.data.get('tipo')
         if not titulo or not duracion_total or not origen or not contenido_id:
             return Response(
                 {"error": "Faltan campos, se requieren: id_prod, titulo, duracion_total, origen, contenido_id"},
@@ -143,6 +144,7 @@ def createProduccion(request):
            titulo = titulo,
            duracion_total=duracion_total,
            origen=origen,
+           type=tipo,
            contenido=contenido_obj
         )
 
@@ -370,6 +372,7 @@ def getProduccion(request):
                 "titulo": produccion.titulo,
                 "duracion_total": frames_to_timecode(produccion.duracion_total),
                 "origen":produccion.origen, 
+                "tipo": produccion.type,
                 "contenido_id": produccion.contenido.id,
                 "contenido_nombre": produccion.contenido.nombre, 
                 "categoria_color": produccion.contenido.categoria.color,
@@ -609,6 +612,7 @@ def updateProduccion(request):
         titulo = request.data.get('titulo')
         duracion_total = request.data.get('duracion_total')
         origen = request.data.get('origen')
+        tipo = request.data.get('tipo')
         contenido_id = request.data.get('contenido_id')
 
         if not id_db:
@@ -638,6 +642,7 @@ def updateProduccion(request):
         produccion.duracion_total = timecode_to_frames(duracion_total)
         produccion.origen = origen
         produccion.contenido = contenido_obj
+        produccion.type = tipo
         produccion.save()
 
         return Response({
