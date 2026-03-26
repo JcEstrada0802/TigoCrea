@@ -275,7 +275,6 @@ def getContenidos(request):
                 "id": contenido.id,
                 "id_cont": contenido.id_cont,
                 "nombre": contenido.nombre, # Nombre del Contenido
-                "orden_pauta": contenido.orden_pauta,
                 "notas": contenido.notas,
                 "id_categoria": contenido.categoria.id,
                 "categoria_nombre": contenido.categoria.nombre, # Campo de la tabla Categoria
@@ -306,7 +305,6 @@ def getContenido(request):
                 "id": contenido.id,
                 "id_cont": contenido.id_cont,
                 "nombre": contenido.nombre, # Nombre del Contenido
-                "orden_pauta": contenido.orden_pauta,
                 "notas": contenido.notas,
                 "id_categoria": contenido.categoria.id,
                 "categoria_nombre": contenido.categoria.nombre, # Campo de la tabla Categoria
@@ -342,6 +340,7 @@ def getProducciones(request):
                 "duracion_total": frames_to_timecode(produccion.duracion_total),
                 "origen":produccion.origen, 
                 "contenido_id": produccion.contenido.id,
+                "orden_pauta": produccion.orden_pauta,
                 "contenido_nombre": produccion.contenido.nombre, 
                 "categoria_color": produccion.contenido.categoria.color,
             } 
@@ -374,6 +373,7 @@ def getProduccion(request):
                 "origen":produccion.origen, 
                 "tipo": produccion.type,
                 "contenido_id": produccion.contenido.id,
+                "orden_pauta": produccion.orden_pauta,
                 "contenido_nombre": produccion.contenido.nombre, 
                 "categoria_color": produccion.contenido.categoria.color,
             } 
@@ -554,7 +554,6 @@ def updateContenido(request):
         nombre = request.data.get('nombre')
         id_cont = request.data.get('id_cont')
         categoria_id = request.data.get('categoria')
-        orden_pauta = request.data.get('orden_pauta')
         notas = request.data.get('notas')
 
         if not id_db:
@@ -585,7 +584,6 @@ def updateContenido(request):
         contenido.nombre = nombre
         contenido.id_cont = id_cont
         contenido.categoria = categoria_obj
-        contenido.orden_pauta = orden_pauta
         contenido.notas = notas
         contenido.save()
 
@@ -613,6 +611,7 @@ def updateProduccion(request):
         duracion_total = request.data.get('duracion_total')
         origen = request.data.get('origen')
         tipo = request.data.get('tipo')
+        ordenPauta = request.data.get('orden_pauta')
         contenido_id = request.data.get('contenido_id')
 
         if not id_db:
@@ -642,6 +641,7 @@ def updateProduccion(request):
         produccion.duracion_total = timecode_to_frames(duracion_total)
         produccion.origen = origen
         produccion.contenido = contenido_obj
+        produccion.orden_pauta = ordenPauta
         produccion.type = tipo
         produccion.save()
 

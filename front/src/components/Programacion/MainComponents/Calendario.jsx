@@ -3,7 +3,7 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import { exportGridToPDF } from '../utils/ExportGridPDF';
+import { exportGridToPDF, exportPlaylistToCLF } from '../utils/ExportService';
 import ContextMenu from '../Modals/ContextMenu';
 import EditBlockModal from '../Modals/EditBlockModal';
 import FillBlockModal from '../Modals/FillBlockModal';
@@ -36,7 +36,7 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
   // --- LÓGICA DE MAGNETISMO (IMÁN) ---
   const handleEventPlacement = (info) => {
     // #################################################################################
-    const isShiftPressed = info?.jsEvent?.shiftKey;
+    const isShiftPressed = info?.jsEvent?.shiftKey || window.event?.shiftKey || false;
     if (isShiftPressed) {
       const deltaMs = (info.delta.days * 86400000) + info.delta.milliseconds;
       
@@ -59,6 +59,7 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
     const allEvents = info.view.calendar.getEvents();
     const newStart = info.event.start;
     const newEnd = info.event.end;
+    if (!newStart || !newEnd) return [];
     const duration = newEnd.getTime() - newStart.getTime();
     
     const threshold = 10 * 60 * 1000; 
@@ -66,7 +67,7 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
     let minDiff = threshold;
 
     allEvents.forEach(ev => {
-      if (ev !== info.event) {
+      if (ev !== info.event && ev.start && ev.end) {
         const diffDown = Math.abs(newStart - ev.end);
         if (diffDown < minDiff) {
           minDiff = diffDown;
@@ -80,7 +81,7 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
       }
     });
 
-    if (closestTime) {
+    if (closestTime && closestTime.time) {
       if (closestTime.type === 'down') {
         const adjustedEnd = new Date(closestTime.time.getTime() + duration);
         info.event.setDates(closestTime.time, adjustedEnd);
@@ -255,7 +256,7 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
 
   const handleEventChange = async (info) => {
     const affectedEvents = handleEventPlacement(info);
-    const isShiftPressed = info.jsEvent?.shiftKey;
+    const isShiftPressed = info?.jsEvent?.shiftKey || window.event?.shiftKey || false;
     try {
       if (isShiftPressed && affectedEvents && affectedEvents.length > 0) {
         const bulkData = affectedEvents.map(ev => ({
@@ -409,13 +410,28 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
           lastProcessedExportTrigger = exportConfig.trigger;
 
           const token = localStorage.getItem('token');
-          const filename = exportConfig.pdfName;
+          let filename
+          let extension
           const ejecutarExportacion = async () => {
               try {
-                  const task_id = await exportGridToPDF(selectedCalIdRef.current,filename,calendarRef);
+                  let task_id
+                  if(exportConfig.pdfName){
+                    extension = "pdf"
+                    filename = exportConfig.pdfName;
+                    task_id = await exportGridToPDF(selectedCalIdRef.current, filename, calendarRef);
+                    showAlert('success', 'PDF exportando, por favor espere...');
+                  }else if(exportConfig.clfName){
+                    extension = "clf"
+                    filename = exportConfig.clfName;
+                    const fecha = exportConfig.fecha;
+                    const calendarId = exportConfig.calendarId;
+                    task_id = await exportPlaylistToCLF(filename, fecha, calendarId);
+                    console.log(task_id);
+                    showAlert('success', 'CLF exportando, por favor espere...');
+                  }
                   if (task_id) {
                       // Iniciamos el polling
-                      pollReportStatus(task_id, token, filename);
+                      pollReportStatus(task_id, token, filename, extension);
                   }
                   showAlert('success', 'PDF exportando, por favor espere...');
               } catch (error) {

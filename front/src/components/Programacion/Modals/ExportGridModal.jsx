@@ -47,9 +47,9 @@ const ExportGridModal = ({ isVisible, onClose, onExport, position }) => {
     if (!isVisible) return null;
 
     const handleSaveClick = () => {
-        if (!pdfName.trim()) return alert("El nombre de la plantilla es obligatorio");
         onExport(selectedCalendar, pdfName);
         setpdfName(''); // Reset
+        setCalendars([]);
         onClose();
     };
 
@@ -111,7 +111,7 @@ const ExportGridModal = ({ isVisible, onClose, onExport, position }) => {
             <div className="mt-8">
                 <button 
                     onClick={handleSaveClick}
-                    disabled={!pdfName.trim()}
+                    disabled={!pdfName.trim() | !selectedCalendar.trim()}
                     className="w-full flex items-center justify-center gap-2 !bg-[#001EB4] text-white font-bold px-4 py-3 rounded-xl hover:!bg-[#44C8F5] transition-all shadow-lg shadow-blue-100 active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
                 >
                     <FaCheck /> Exportar

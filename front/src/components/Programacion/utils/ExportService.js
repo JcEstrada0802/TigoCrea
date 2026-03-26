@@ -1,8 +1,9 @@
 import axios from 'axios';
+import { Triangle } from 'lucide-react';
 
 const apiUrl = import.meta.env.VITE_API_URL;
 
-export const exportGridToPDF = async (calendarId, pdfName, calendarRef) => {
+const exportGridToPDF = async (calendarId, pdfName, calendarRef) => {
     const token = localStorage.getItem('token');
 
     try {
@@ -30,7 +31,33 @@ export const exportGridToPDF = async (calendarId, pdfName, calendarRef) => {
         return response.data.task_id; 
 
     } catch (error) {
-        console.error("Error en exportGridToPDF.js:", error);
+        console.error("Error en exportGridToPDF: ", error);
         throw error; // Re-lanzamos para que el componente decida qué mostrar
     }
 };
+
+const exportPlaylistToCLF = async(clfName, fecha, calendarId) => {
+    const token = localStorage.getItem('token')
+    try{
+        const response = await axios.post(
+            `${apiUrl}/programacion/exportPLaylist/`,
+            { 
+                calendar_id: calendarId,
+                filename: clfName,
+                fecha: fecha
+            },
+            { 
+                headers: { 
+                    'Authorization': `Token ${token}`,
+                    'Content-Type': 'application/json'
+                } 
+            }
+        );
+        return response.data.task_id; 
+    }catch (error){
+        console.error("Error en exportPlaylistToCLF: ", error);
+        throw error;
+    }
+}
+
+export {exportGridToPDF, exportPlaylistToCLF}

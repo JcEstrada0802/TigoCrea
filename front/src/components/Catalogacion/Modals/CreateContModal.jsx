@@ -17,7 +17,6 @@ function CreateContModal({ isOpen, onClose, onFinish, selectedCat, config }) {
   const [nombre, setNombre] = useState('');
   const [idCont, setIdCont] = useState('');
   const [categoria, setCategoria] = useState(''); 
-  const [ordenPauta, setOrdenPauta] = useState('');
   const [notas, setNotas] = useState('');
   const [categoriasList, setCategoriasList] = useState([]);
 
@@ -40,7 +39,6 @@ function CreateContModal({ isOpen, onClose, onFinish, selectedCat, config }) {
           setNombre('');
           setIdCont('');
           setCategoria(selectedCat || ''); // Usamos la categoría preseleccionada si existe
-          setOrdenPauta('');
           setNotas('');
         } 
         else if (config.mode === "edit") {
@@ -57,7 +55,6 @@ function CreateContModal({ isOpen, onClose, onFinish, selectedCat, config }) {
             setIdCont(cont.id_cont || '');
             // Ahora que categoriasList ya tiene datos, esto sí funcionará:
             setCategoria(cont.id_categoria); 
-            setOrdenPauta(cont.orden_pauta || '');
             setNotas(cont.notas || '');
           }
         }
@@ -83,7 +80,6 @@ function CreateContModal({ isOpen, onClose, onFinish, selectedCat, config }) {
         nombre: nombre,
         id_cont: idCont,
         categoria: categoria, // ID de la Foreign Key
-        orden_pauta: ordenPauta,
         notas: notas
       };
 
@@ -163,18 +159,6 @@ function CreateContModal({ isOpen, onClose, onFinish, selectedCat, config }) {
                   ))}
                 </select>
                 <span>Categoría*</span>
-              </label>
-
-              {/* Orden Pauta */}
-              <label className="full-width">
-                <ListBulletIcon className="input-icon" />
-                <input
-                  className="input"
-                  type="text"
-                  value={ordenPauta}
-                  onChange={(e) => setOrdenPauta(e.target.value)}
-                />
-                <span>Orden Pauta</span>
               </label>
 
               {/* Notas */}

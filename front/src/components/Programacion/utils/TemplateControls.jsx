@@ -58,13 +58,20 @@ const TemplateControls = ({ onConfirmImport, onConfirmExport, onConfirmPDF, onCo
           <FaFilePdf size={18} />
         </button>
 
+        
+
         {/* Botón para exportar Grid */}
-        {(user?.is_superuser || user?.groups?.includes("AdLogger"))&&(<button 
-          onClick={(e)=> handleOpen(e, setShowExportCLF)} 
-          className="flex items-center gap-1 px-2 py-1 hover:bg-blue-50 rounded-full text-[#001EB4] transition-all active:scale-95 font-bold text-[10px] whitespace-nowrap"
-        >
-          <FaBroadcastTower size={18} />
-        </button>)}
+        {(user?.is_superuser || user?.groups?.includes("AdLogger"))&&(
+          <>
+            <div className="w-[1px] h-3 bg-gray-200"></div>
+            <button 
+              onClick={(e)=> handleOpen(e, setShowExportCLF)} 
+              className="flex items-center gap-1 px-2 py-1 hover:bg-blue-50 rounded-full text-[#001EB4] transition-all active:scale-95 font-bold text-[10px] whitespace-nowrap"
+              >
+              <FaBroadcastTower size={18} />
+            </button>
+          </>
+        )}
       </div>
 
       {/* Renderizamos el Modal aquí mismo */}

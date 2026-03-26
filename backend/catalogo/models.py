@@ -22,7 +22,6 @@ class Contenido(models.Model):
     id = models.BigAutoField(primary_key=True)
     id_cont = models.CharField(max_length=10, unique=True)
     nombre = models.CharField(max_length=25, unique=True)
-    orden_pauta = models.CharField(max_length=255, blank=True, null=True)
     notas = models.CharField(max_length=255, blank=True, null=True)
     categoria = models.ForeignKey(
         Categoria, 
@@ -39,6 +38,7 @@ class Produccion(models.Model):
     # id_prod = models.CharField(max_length=10, unique=True)
     titulo = models.CharField(max_length=50)
     duracion_total = models.BigIntegerField(default=0) # Mapea a interval
+    orden_pauta = models.CharField(max_length=255, blank=True, null=True)
     origen = models.CharField(
         max_length=20, 
         help_text="Live-1, Live-2, Servidor"

@@ -171,6 +171,14 @@ function ProgramacionMain() {
     })
   }
 
+  const ExportToCLF = (nombre, fecha, calendario) =>{
+    setExportConfig({
+      clfName: nombre,
+      fecha: fecha,
+      calendarId: calendario
+    })
+  }
+
   return (
     <div style={{ 
         display: 'flex', 
@@ -182,7 +190,7 @@ function ProgramacionMain() {
         
         {/* Contenedor del Manager */}
         <aside style={{ width: '320px', display: 'flex', flexDirection: 'column', height: '95vh', padding: '10px', boxSizing: 'border-box'}}>
-          <TemplateControls onConfirmImport={ImportTemplate} onConfirmExport={SaveTemplate} onConfirmPDF={ExportToPDF}/>
+          <TemplateControls onConfirmImport={ImportTemplate} onConfirmExport={SaveTemplate} onConfirmPDF={ExportToPDF} onConfirmClf={ExportToCLF}/>
           <div style={{ flexGrow: 1, overflow: 'hidden' }}>
             <BlockManager categorias={datos} createCat={handleAddClick} createBlock={handleCreateBlock}/>
           </div>

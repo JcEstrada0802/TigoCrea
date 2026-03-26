@@ -566,7 +566,9 @@ def exportPlaylist(request):
 @permission_classes([AllowAny])
 def getPlaylistCLF(request):
     try:
+        titulo = request.query_params.get('titulo')
         task_id = request.query_params.get('taskId')
+        print("taskID: ", task_id)
         task = AsyncResult(task_id)
         clf_binary = task.result
 
@@ -575,7 +577,7 @@ def getPlaylistCLF(request):
             fecha_archivo = task.args[1]
 
         response = HttpResponse(clf_binary, content_type='application/xml')
-        response['Content-Disposition'] = f'attachment; filename="playlist_{fecha_archivo}.clf"'
+        response['Content-Disposition'] = f'attachment; filename="{titulo}_{fecha_archivo}.clf"'
         return response
 
     except Exception as e:

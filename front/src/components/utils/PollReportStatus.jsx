@@ -3,7 +3,7 @@ const API_URL = import.meta.env.VITE_API_URL;
 const POLLING_INTERVAL = 10000; // 10 segundos
 import axios from "axios";
 
-function pollReportStatus(task_id, token, title) {
+function pollReportStatus(task_id, token, title, extension) {
     
     localStorage.setItem('pending_report_task_id', task_id);
     const intervalId = setInterval(async () => {
@@ -20,17 +20,23 @@ function pollReportStatus(task_id, token, title) {
             if (currentStatus === 'SUCCESS' || currentStatus === 'FAILURE') {
                 clearInterval(intervalId); // DETENEMOS EL POLLING
                 if (currentStatus === 'SUCCESS') {
+                    let endpoint
+                    if (extension=="clf"){
+                        endpoint = `/programacion/getPlaylistCLF/?titulo=${title}&taskId=${task_id}`
+                    }else{
+                        endpoint = `/reporteria/getReportPDF/?titulo=${title}&taskId=${task_id}`
+                    }
                     const respuesta = await axios.get(
-                        `${API_URL}/reporteria/getReportPDF/?titulo=${title}&taskId=${task_id}`,
+                        `${API_URL}${endpoint}`,
                         { 
                             headers: { Authorization: `Token ${token}` },
                             responseType: 'blob'
                         }
                     );
-                    const url = window.URL.createObjectURL(new Blob([respuesta.data], {type: 'application/pdf'}));
+                    const url = window.URL.createObjectURL(new Blob([respuesta.data], {type: `application/${extension}`}));
                     const link = document.createElement('a');
                     link.href = url;
-                    link.setAttribute('download', `${title}.pdf`);
+                    link.setAttribute('download', `${title}.${extension}`);
                     document.body.appendChild(link);
                     link.click();
                     link.remove();

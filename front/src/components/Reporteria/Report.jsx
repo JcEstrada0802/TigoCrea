@@ -253,7 +253,7 @@ const Report = ({ reporteId, onViewTable }) => {
                 setShowAlert(true)
                 setTimeout(() => (setShowAlert(false),2500))
                 
-                pollReportStatus(task_id, token, filename);
+                pollReportStatus(task_id, token, filename, "pdf");
                 
             // --- EXPORTACIÓN A CSV ---
             } else if (format === 'csv') {

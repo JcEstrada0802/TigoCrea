@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import {
   FilmIcon,
   PencilIcon,
-  IdentificationIcon,
+  ListBulletIcon,
   DocumentTextIcon,
   ClockIcon,
   CircleStackIcon
@@ -20,6 +20,7 @@ function CreateProdModal({ isOpen, onClose, onFinish, selectedCont, config }) {
   const [duracion, setDuracion] = useState('00:00:00'); // Formato DurationField
   const [origen, setOrigen] = useState('');
   const [tipo, setTipo] = useState('');
+  const [ordenPauta, setOrdenPauta] = useState('');
   const [contenidosList, setContenidosList] = useState([]);
 
   useEffect(() => {
@@ -45,6 +46,7 @@ function CreateProdModal({ isOpen, onClose, onFinish, selectedCont, config }) {
             setOrigen(prod.origen);
             setDuracion(prod.duracion_total);
             setTipo(prod.tipo);
+            setOrdenPauta(prod.orden_pauta || '');
           }
         } else {
           // Reset para creación
@@ -53,6 +55,7 @@ function CreateProdModal({ isOpen, onClose, onFinish, selectedCont, config }) {
           setDuracion('00:00:00:00');
           setOrigen('');
           setTipo('');
+          setOrdenPauta('');
         }
       } catch (error) {
         console.error("Error al preparar el modal:", error);
@@ -76,6 +79,7 @@ function CreateProdModal({ isOpen, onClose, onFinish, selectedCont, config }) {
         titulo: titulo,
         contenido_id: contenidoId, // ID de la Foreign Key
         duracion_total: duracion,  // String "HH:MM:SS"
+        orden_pauta: ordenPauta,
         origen: origen,
         tipo: tipo
       };
@@ -177,6 +181,18 @@ function CreateProdModal({ isOpen, onClose, onFinish, selectedCont, config }) {
                   <option value="LIVE EVENT">LIVE EVENT</option>
                 </select>
                 <span>Tipo</span>
+              </label>
+
+              {/* Orden de Pauta */}
+              <label>
+                <ListBulletIcon className="input-icon" />
+                <input
+                  className="input"
+                  type="text"
+                  value={ordenPauta}
+                  onChange={(e) => setOrdenPauta(e.target.value)}
+                />
+                <span>Orden Pauta</span>
               </label>
 
               {/* Duración (Mapea a DurationField) */}
