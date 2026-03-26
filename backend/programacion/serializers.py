@@ -6,7 +6,7 @@ from catalogo.utils.timeToFrame import frames_to_timecode
 class BloqueSerializer(serializers.ModelSerializer):
     class Meta:
         model = Bloque
-        fields = ['id', 'nombre', 'duracion_teorica', 'duracion_real']
+        fields = ['id', 'nombre', 'duracion_teorica', 'duracion_real', 'notas']
 
 class CatalogCategoriaSerializer(serializers.ModelSerializer):
     # 'bloques' es el related_name que definiste en el modelo

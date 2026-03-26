@@ -37,7 +37,7 @@ class ProduccionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Produccion
-        fields = ['id', 'titulo', 'origen', 'duracion_total', 'segmentos']
+        fields = ['id', 'titulo', 'origen', 'duracion_total', 'segmentos', 'orden_pauta']
 
 class ContenidoSerializer(serializers.ModelSerializer):
     # Anidamos las producciones
@@ -45,7 +45,7 @@ class ContenidoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Contenido
-        fields = ['id', 'id_cont', 'nombre', 'orden_pauta', 'producciones']
+        fields = ['id', 'id_cont', 'nombre', 'producciones']
 
 class CatalogoCompletoSerializer(serializers.ModelSerializer):
     # El nivel superior: Categoría anidando contenidos

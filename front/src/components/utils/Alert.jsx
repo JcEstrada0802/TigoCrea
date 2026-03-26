@@ -32,7 +32,7 @@ const Alert = ({ type = 'info', message }) => {
   const style = variants[type];
 
   return (
-    <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-50">
+    <div className="fixed top-6 left-1/2 transform -translate-x-1/2 z-10000">
       <div
         role="alert"
         className={`${style.bg} border-l-4 ${style.border} ${style.text} p-3 rounded-lg shadow-lg flex items-center transition duration-300 ease-in-out hover:scale-[1.02]`}

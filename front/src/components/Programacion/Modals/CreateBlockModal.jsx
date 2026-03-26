@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import styled from 'styled-components';
 import { 
     FaTimes, 
     FaTag, 
@@ -10,12 +11,12 @@ import {
 } from 'react-icons/fa';
 import axios from 'axios';
 
-const CreateBlockModal = ({ isOpen, onClose, onFinish, config, categoriaId, categoriaNombre }) => {
+const CreateBlockModal = ({ isOpen, onClose, onFinish, config, categoriaId, categoriaNombre, showAlert}) => {
     const apiUrl = import.meta.env.VITE_API_URL;
     const token = localStorage.getItem("token");
 
     const [nombre, setNombre] = useState('');
-    const [duracionTeorica, setDuracionTeorica] = useState('');
+    const [duracionTeorica, setDuracionTeorica] = useState('00:00:00');
     const [notas, setNotas] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -50,6 +51,19 @@ const CreateBlockModal = ({ isOpen, onClose, onFinish, config, categoriaId, cate
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        const durationToSeconds = (hms) => {
+            const [hours, minutes, seconds] = hms.split(':').map(Number);
+            return (hours * 3600) + (minutes * 60) + (seconds || 0);
+        };
+
+        // 2. Validación: ¿Es un formato válido y mayor a 5 minutos?
+        const totalSeconds = durationToSeconds(duracionTeorica);
+        const MIN_SECONDS = 300; // 5 minutos exactos
+
+        if (isNaN(totalSeconds) || totalSeconds < MIN_SECONDS) {
+            showAlert('error', 'La duración debe ser mayor a 5 minutos')
+            return; // Detenemos el envío
+        }
         setLoading(true);
         
         try {
@@ -71,6 +85,22 @@ const CreateBlockModal = ({ isOpen, onClose, onFinish, config, categoriaId, cate
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleDuracionChange = (e) => {
+        let input = e.target.value.replace(/\D/g, '').substring(0, 6);
+        let formatted = "";
+        if (input.length > 0) {
+            formatted += input.substring(0, 2);
+            if (input.length > 2) {
+                formatted += ":" + input.substring(2, 4);
+                if (input.length > 4) {
+                    formatted += ":" + input.substring(4, 6);
+                }
+            }
+        }
+
+        setDuracionTeorica(formatted);
     };
 
     if (!isOpen) return null;
@@ -123,19 +153,22 @@ const CreateBlockModal = ({ isOpen, onClose, onFinish, config, categoriaId, cate
                         </div>
 
                         {/* Duración Teórica */}
-                        <div className="space-y-2">
-                            <label className="text-sm font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                                <FaClock size={12} /> Estimada(HH:MM:SS)*
+                        <StyledInputGroup className="relative">
+                            <label className="text-sm font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2 mb-1">
+                                <FaClock size={12} /> Duración Estimada
                             </label>
-                            <input 
+                            <div className="relative">
+                                <input 
                                 type="text"
                                 required
                                 value={duracionTeorica}
-                                onChange={(e) => setDuracionTeorica(e.target.value)}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
-                                placeholder="HH:MM:SS"
-                            />
-                        </div>
+                                onChange={handleDuracionChange}
+                                className="input-field w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
+                                placeholder=" " 
+                                />
+                                <span className="floating-label">(HH:MM:SS)*</span>
+                            </div>
+                        </StyledInputGroup>
 
                         {/* Placeholder para balancear grid o Notas */}
                         <div className="md:col-span-3 space-y-2">
@@ -175,5 +208,46 @@ const CreateBlockModal = ({ isOpen, onClose, onFinish, config, categoriaId, cate
         </div>
     );
 };
+
+const StyledInputGroup = styled.div`
+  position: relative;
+  margin-top: 10px;
+
+  .input-field {
+    transition: all 0.3s ease;
+    border: 1px solid #e5e7eb;
+  }
+
+  /* El Span (Label flotante) */
+  .floating-label {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: #f9fafb; /* Color del fondo del input */
+    padding: 0 4px;
+    color: #9ca3af;
+    font-size: 0.9em;
+    pointer-events: none;
+    transition: all 0.3s ease;
+    z-index: 10;
+  }
+
+  /* Animación: Cuando el input tiene foco O no está vacío */
+  .input-field:focus + .floating-label,
+  .input-field:not(:placeholder-shown) + .floating-label {
+    top: -0px; /* Lo sube al borde superior */
+    left: 12px;
+    font-size: 0.75em;
+    color: #2563eb;
+    font-weight: 600;
+    background-color: white; /* Para que "corte" la línea del borde */
+  }
+
+  .input-field:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+  }
+`;
 
 export default CreateBlockModal;

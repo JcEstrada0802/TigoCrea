@@ -192,7 +192,7 @@ function ProgramacionMain() {
         <aside style={{ width: '320px', display: 'flex', flexDirection: 'column', height: '95vh', padding: '10px', boxSizing: 'border-box'}}>
           <TemplateControls onConfirmImport={ImportTemplate} onConfirmExport={SaveTemplate} onConfirmPDF={ExportToPDF} onConfirmClf={ExportToCLF}/>
           <div style={{ flexGrow: 1, overflow: 'hidden' }}>
-            <BlockManager categorias={datos} createCat={handleAddClick} createBlock={handleCreateBlock}/>
+            <BlockManager categorias={datos} createCat={handleAddClick} createBlock={handleCreateBlock} showAlert={setAlert} reset={fetchCatalog}/>
           </div>
           <Controls onZoomIn={zoomIn} onZoomOut={zoomOut} onReset={reset} currentView={CalendarViews} onChangeView={onChangeView}/>
         </aside>
@@ -234,6 +234,7 @@ function ProgramacionMain() {
           categoriaNombre={catName}
           config={{ mode: 'create' }}
           onFinish={handleFinish}
+          showAlert={setAlert}
         />
         {/* MODALS PARA IMPORTA/EXPORTAR TEMPLATES */}
         {showAlert && <Alert type={tipo} message={mensaje}/>}

@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Draggable } from '@fullcalendar/interaction';
-import { FaPlus, FaFolder, FaFolderOpen } from 'react-icons/fa'; // Usando iconos pro
+import { FaPlus, FaFolder, FaFolderOpen, FaPencilAlt, FaTrashAlt } from 'react-icons/fa';
+import EditCatModal from '../Modals/EditCatModal';
 import { framesToFullCalendarDuration } from '../utils/DecodeTimes';
 import './BlockManager.css';
 
-const BlockManager = ({ categorias, createCat, createBlock }) => {
+const BlockManager = ({ categorias, createCat, createBlock, showAlert, reset }) => {
   const [openCategories, setOpenCategories] = useState({});
+  const [showModal, setShowModal] = useState(false);
+  const [block, setBlock] = useState(''); 
+  const [modalPosition, setModalPosition] = useState({ top: 0, left: 0 });
   const containerRef = useRef(null);
 
   useEffect(() => {
@@ -29,6 +33,17 @@ const BlockManager = ({ categorias, createCat, createBlock }) => {
 
   const toggleCategory = (id) => {
     setOpenCategories(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handleOpenEdit = (e, block) => {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    setModalPosition({
+        top: rect.top + window.scrollY,
+        left: rect.left + window.scrollX + 30 
+    });
+    setBlock(block); 
+    setShowModal(true);
   };
 
   return (
@@ -61,6 +76,7 @@ const BlockManager = ({ categorias, createCat, createBlock }) => {
                   style={{ backgroundColor: cat.color }}
                   title={`Color: ${cat.color}`}
                 ></div>
+                {/* Agregar bloque */}
                 <button 
                   className="add-block-btn" 
                   onClick={(e) => {
@@ -70,6 +86,26 @@ const BlockManager = ({ categorias, createCat, createBlock }) => {
                   title="Agregar bloque a esta categoría"
                 >
                   <FaPlus size={10} />
+                </button>
+                
+                {/* Editar bloque */}
+                <button 
+                  className="add-block-btn" 
+                  onClick={(e) => handleOpenEdit(e, cat)} // 'item' es el objeto del bloque actual
+                  title="Editar esta categoría"
+                >
+                  <FaPencilAlt size={10} />
+                </button>
+                
+                {/* Borrar bloque */}
+                <button 
+                  className="add-block-btn" 
+                  onClick={(e) => {
+                    e.stopPropagation(); // Evita que se cierre la carpeta
+                  }}
+                  title="Borrar esta categoría"
+                >
+                  <FaTrashAlt size={10} />
                 </button>
               </div>
             </div>
@@ -103,6 +139,14 @@ const BlockManager = ({ categorias, createCat, createBlock }) => {
           </div>
         ))}
       </div>
+      <EditCatModal
+        isVisible={showModal}
+        onFinish={showAlert}
+        onClose={()=>setShowModal(false)}
+        blockData={block}
+        position={modalPosition}
+        refresh={reset}
+      />
     </div>
   );
 };

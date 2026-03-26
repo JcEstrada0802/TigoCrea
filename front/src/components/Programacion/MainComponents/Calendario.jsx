@@ -5,7 +5,7 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { exportGridToPDF, exportPlaylistToCLF } from '../utils/ExportService';
 import ContextMenu from '../Modals/ContextMenu';
-import EditBlockModal from '../Modals/EditBlockModal';
+import EditBlockModal from '../Modals/EditEventModal';
 import FillBlockModal from '../Modals/FillBlockModal';
 import { copyBlock, copyDay, copyWeek, pasteItems } from '../utils/ClipboardLogic';
 import { bulkCreateEventsInDB, createEventInDB, bulkUpdateEventsInDB, updateEventInDB, bulkDeleteEventsInDB } from '../utils/EventService';

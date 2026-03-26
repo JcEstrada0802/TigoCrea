@@ -1,7 +1,8 @@
 from django.shortcuts import render
 from django.db import transaction
-from django.db.models import Prefetch
 from django.utils import timezone
+from django.shortcuts import get_object_or_404
+from django.db.models import ProtectedError
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
@@ -25,7 +26,7 @@ with open(logo_path, "rb") as image_file:
     encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
 #--------------------------------------------------------------------------
 
-# ------------------------------- CREACION DE CATBLOCKS -------------------------------
+# ------------------------------- CRUD DE CATBLOCKS -------------------------------
 @api_view(['POST'])
 @permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger | IsAdminUser)])
 def createBlockCat(request):
@@ -60,8 +61,40 @@ def createBlockCat(request):
         return Response({
             "error": f"Ocurrio un error inesperado al crear la categoría de blques, {e}"
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-# ------------------------------- CREACION DE BLOQUES -------------------------------
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger | IsAdminUser)])
+def updateBlockCat(request, pk):
+    categoria = get_object_or_404(BloqueCategoria, pk=pk)
+    serializer = CatalogCategoriaSerializer(categoria, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger | IsAdminUser)])
+def deleteBlockCat(request, pk):
+    categoria = get_object_or_404(BloqueCategoria, pk=pk)
+    force_delete = request.query_params.get('force') == 'true'
+    try:
+        if force_delete:
+            categoria.bloques.all().delete()
+            categoria.delete()
+            return Response({"message": "Categoría y sus bloques eliminados"}, status=status.HTTP_200_OK)
+        else:
+            categoria.delete()
+            return Response({"message": "Categoría eliminada correctamente"}, status=status.HTTP_200_OK)
+
+    except ProtectedError:
+        conteo_bloques = categoria.bloques.count()
+        return Response({
+            "error": "protected_relation",
+            "message": f"Esta categoría tiene {conteo_bloques} bloques asociados.",
+            "conteo": conteo_bloques
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+# ------------------------------- CRUD DE BLOQUES -------------------------------
 @api_view(['POST'])
 @permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger | IsAdminUser)])
 def createBlock(request):
@@ -105,6 +138,24 @@ def createBlock(request):
         return Response({
             "error": f"Error inesperado: {str(e)}"
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger | IsAdminUser)])
+def updateBlock(request, pk):
+    bloque = get_object_or_404(Bloque, pk=pk)
+    serializer = BloqueSerializer(bloque, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger | IsAdminUser)])
+def deleteBlock(request, pk):
+    bloque = get_object_or_404(Bloque, pk=pk)
+    bloque.delete()
+    return Response({"message" : "Bloque eliminado correctamente"},
+                    status=status.HTTP_200_OK)
 
 # ------------------------------- CATALOGO DE BLOQUES -------------------------------
 @api_view(['GET'])

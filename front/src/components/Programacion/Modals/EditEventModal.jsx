@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Trash2 } from 'lucide-react';
 import ConfirmationAlert from '../../utils/ConfirmationAlert';
 
-const EditBlockModal = ({ x, y, event, onClose, onSave, onDelete }) => {
+const EditEventModal = ({ x, y, event, onClose, onSave, onDelete }) => {
   const [nombre, setNombre] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -90,4 +90,4 @@ const EditBlockModal = ({ x, y, event, onClose, onSave, onDelete }) => {
   );
 };
 
-export default EditBlockModal;
+export default EditEventModal;
