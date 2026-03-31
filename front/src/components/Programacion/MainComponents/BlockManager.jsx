@@ -3,6 +3,7 @@ import { Draggable } from '@fullcalendar/interaction';
 import { FaPlus, FaFolder, FaFolderOpen, FaPencilAlt, FaTrashAlt } from 'react-icons/fa';
 import EditCatModal from '../Modals/EditCatModal';
 import { framesToFullCalendarDuration } from '../utils/DecodeTimes';
+import ConfirmationAlert from '../../utils/ConfirmationAlert';
 import './BlockManager.css';
 
 const BlockManager = ({ categorias, createCat, createBlock, showAlert, reset }) => {
@@ -11,6 +12,17 @@ const BlockManager = ({ categorias, createCat, createBlock, showAlert, reset }) 
   const [block, setBlock] = useState(''); 
   const [modalPosition, setModalPosition] = useState({ top: 0, left: 0 });
   const containerRef = useRef(null);
+  // Estados para el borrado
+  const [confirmConfig, setConfirmConfig] = useState({ 
+    show: false, 
+    message: '', 
+    tipo: 'info', 
+    catId: null, 
+    force: false 
+  });
+
+  // Función para cerrar el alert
+  const closeConfirm = () => setConfirmConfig({ ...confirmConfig, show: false });
 
   useEffect(() => {
     let draggable = new Draggable(containerRef.current, {
@@ -44,6 +56,39 @@ const BlockManager = ({ categorias, createCat, createBlock, showAlert, reset }) 
     });
     setBlock(block); 
     setShowModal(true);
+  };
+
+  const processDelete = async (id, isForce = false) => {
+    closeConfirm(); // Cerramos el alert actual
+    
+    try {
+      const url = `${import.meta.env.VITE_API_URL}/programacion/deleteBlockCat/${id}/${isForce ? '?force=true' : ''}`;
+      const response = await fetch(url, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Token ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+
+      if (response.status === 400 && data.error === 'protected_relation') {
+        // Si tronó por protección, disparamos el alert de "Warning" para forzar
+        setConfirmConfig({
+          show: true,
+          message: `${data.message} ¿Deseas borrar TODO el contenido de esta categoría?`,
+          tipo: 'warning',
+          catId: id,
+          force: true
+        });
+      } else if (response.ok) {
+        showAlert('success', data.message || 'Eliminado correctamente');
+        reset(); // Refresca la lista del catálogo
+      }
+    } catch (error) {
+      showAlert('error', 'Error de conexión con el servidor');
+    }
   };
 
   return (
@@ -101,9 +146,15 @@ const BlockManager = ({ categorias, createCat, createBlock, showAlert, reset }) 
                 <button 
                   className="add-block-btn" 
                   onClick={(e) => {
-                    e.stopPropagation(); // Evita que se cierre la carpeta
+                    e.stopPropagation();
+                    setConfirmConfig({
+                      show: true,
+                      message: `¿Estás seguro de eliminar la categoría ${cat.nombre}?`,
+                      tipo: 'info',
+                      catId: cat.id,
+                      force: false
+                    });
                   }}
-                  title="Borrar esta categoría"
                 >
                   <FaTrashAlt size={10} />
                 </button>
@@ -139,6 +190,14 @@ const BlockManager = ({ categorias, createCat, createBlock, showAlert, reset }) 
           </div>
         ))}
       </div>
+      {confirmConfig.show && (
+        <ConfirmationAlert 
+          message={confirmConfig.message}
+          tipo={confirmConfig.tipo}
+          onCancel={closeConfirm}
+          onConfirm={() => processDelete(confirmConfig.catId, confirmConfig.force)}
+        />
+      )}
       <EditCatModal
         isVisible={showModal}
         onFinish={showAlert}

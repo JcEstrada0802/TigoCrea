@@ -60,7 +60,6 @@ def createContenido(request):
         nombre = request.data.get('nombre')
         id_cont = request.data.get('id_cont')
         categoria_id = request.data.get('categoria')
-        orden_pauta = request.data.get('orden_pauta')
         notas = request.data.get('notas')
 
         if not nombre or not id_cont or not categoria_id:
@@ -86,7 +85,6 @@ def createContenido(request):
         contenido = Contenido.objects.create(
             nombre=nombre,
             id_cont=id_cont,
-            orden_pauta=orden_pauta,
             notas=notas,
             categoria=categoria_obj
         )
@@ -116,6 +114,7 @@ def createProduccion(request):
         titulo = request.data.get('titulo')
         duracion_total = request.data.get('duracion_total')
         origen = request.data.get('origen')
+        orden_pauta = request.data.get('orden_pauta')
         contenido_id = request.data.get('contenido_id')
         tipo = request.data.get('tipo')
         if not titulo or not duracion_total or not origen or not contenido_id:
@@ -143,6 +142,7 @@ def createProduccion(request):
         produccion = Produccion.objects.create(
            titulo = titulo,
            duracion_total=duracion_total,
+           orden_pauta=orden_pauta,
            origen=origen,
            type=tipo,
            contenido=contenido_obj
