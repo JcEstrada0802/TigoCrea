@@ -17,7 +17,8 @@ const BlockManager = ({ categorias, createCat, createBlock, showAlert, reset }) 
     show: false, 
     message: '', 
     tipo: 'info', 
-    catId: null, 
+    id: null, 
+    mode: 'cat',    // 'cat' o 'block'
     force: false 
   });
 
@@ -79,7 +80,7 @@ const BlockManager = ({ categorias, createCat, createBlock, showAlert, reset }) 
           show: true,
           message: `${data.message} ¿Deseas borrar TODO el contenido de esta categoría?`,
           tipo: 'warning',
-          catId: id,
+          id: id,
           force: true
         });
       } else if (response.ok) {
@@ -88,6 +89,38 @@ const BlockManager = ({ categorias, createCat, createBlock, showAlert, reset }) 
       }
     } catch (error) {
       showAlert('error', 'Error de conexión con el servidor');
+    }
+  };
+
+  const handleDeleteBlock = (id) => {
+    setConfirmConfig({
+      show: true,
+      message: `¿Estás seguro de eliminar este bloque del catálogo?`,
+      tipo: 'warning',
+      id: id,
+      mode: 'block',
+      force: false
+    });
+  };
+
+  const processDeleteBlock = async (id) => {
+    closeConfirm();
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/programacion/deleteBlock/${id}/`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Token ${localStorage.getItem('token')}`,
+        }
+      });
+
+      if (response.ok) {
+        showAlert('success', 'Bloque eliminado correctamente');
+        reset(); // Refresca el catálogo
+      } else {
+        showAlert('error', 'No se pudo eliminar el bloque');
+      }
+    } catch (error) {
+      showAlert('error', 'Error de conexión');
     }
   };
 
@@ -151,7 +184,7 @@ const BlockManager = ({ categorias, createCat, createBlock, showAlert, reset }) 
                       show: true,
                       message: `¿Estás seguro de eliminar la categoría ${cat.nombre}?`,
                       tipo: 'info',
-                      catId: cat.id,
+                      id: cat.id,
                       force: false
                     });
                   }}
@@ -162,29 +195,59 @@ const BlockManager = ({ categorias, createCat, createBlock, showAlert, reset }) 
             </div>
 
             {openCategories[cat.id] && cat.bloques && (
-              <div className="blocks-list">
-                {cat.bloques?.map(bloque => {
+              <div className="flex flex-col gap-1 mt-1 ml-4 border-l-2 border-gray-100 pl-2">
+                {cat.bloques?.map((bloque, bIndex) => {
                   const durationStr = framesToFullCalendarDuration(bloque.duracion_teorica);
                   return (
                     <div
                       key={`block-${cat.id}-${bloque.id || bIndex}`}
-                      className="draggable-block"
+                      className="draggable-block group flex items-center justify-between p-2 rounded-xl bg-white border border-gray-50 hover:border-blue-200 hover:shadow-sm transition-all cursor-grab active:cursor-grabbing"
                       data-id={bloque.id}
                       data-title={bloque.nombre}
                       data-duration={durationStr}
                       data-color={cat.color}
                       data-ff={bloque.duracion_teorica}
                     >
-                      <span className="block-drag-handle">⠿</span>
-                      <div className="block-info">
-                        <span className="block-name">{bloque.nombre}</span>
-                        <span className="block-duration">
-                          {durationStr}
-                        </span>
+                      {/* Lado Izquierdo: Handle e Info */}
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <span className="text-gray-300 text-xs shrink-0">⠿</span>
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-[11px] font-bold text-gray-700 truncate tracking-tight">
+                            {bloque.nombre}
+                          </span>
+                          <span className="text-[9px] font-black text-blue-500/70 tabular-nums">
+                            {durationStr}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Lado Derecho: Acciones (Solo visibles en hover del padre) */}
+                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <button 
+                          className="p-1.5 rounded-lg !text-gray-400 hover:!text-blue-600 hover:!bg-blue-50 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenEditBlock(e, bloque);
+                          }}
+                          title="Editar Bloque"
+                        >
+                          <FaPencilAlt size={10} />
+                        </button>
+                        
+                        <button 
+                          className="p-1.5 rounded-lg !text-gray-400 hover:!text-red-600 hover:!bg-red-50 transition-colors"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteBlock(bloque.id);
+                          }}
+                          title="Eliminar Bloque"
+                        >
+                          <FaTrashAlt size={10} />
+                        </button>
                       </div>
                     </div>
                   )
-                  })}
+                })}
               </div>
             )}
           </div>
@@ -195,7 +258,13 @@ const BlockManager = ({ categorias, createCat, createBlock, showAlert, reset }) 
           message={confirmConfig.message}
           tipo={confirmConfig.tipo}
           onCancel={closeConfirm}
-          onConfirm={() => processDelete(confirmConfig.catId, confirmConfig.force)}
+          onConfirm={() => {
+            if (confirmConfig.mode === 'block') {
+              processDeleteBlock(confirmConfig.id);
+            } else {
+              processDelete(confirmConfig.id, confirmConfig.force);
+            }
+          }}
         />
       )}
       <EditCatModal
@@ -211,3 +280,4 @@ const BlockManager = ({ categorias, createCat, createBlock, showAlert, reset }) 
 };
 
 export default BlockManager;
+
