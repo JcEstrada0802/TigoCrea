@@ -143,10 +143,27 @@ def createBlock(request):
 @permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger | IsAdminUser)])
 def updateBlock(request, pk):
     bloque = get_object_or_404(Bloque, pk=pk)
-    serializer = BloqueSerializer(bloque, data=request.data, partial=True)
+    data = request.data.copy() # Hacemos una copia para poder modificar los valores
+
+    # Si viene la duración, hay que convertirla a frames (integer)
+    tc_teorico = data.get('duracion_teorica')
+    if tc_teorico:
+        try:
+            # Aplicamos tu lógica: sumamos ":00" para los cuadros y convertimos
+            # Asumimos que el frontend manda HH:MM:SS
+            frames_teoricos = timecode_to_frames(tc_teorico + ":00")
+            data['duracion_teorica'] = frames_teoricos
+        except Exception as e:
+            return Response({"error": f"Formato de tiempo inválido: {str(e)}"}, 
+                            status=status.HTTP_400_BAD_REQUEST)
+
+    # Ahora el serializador ya recibe un entero en lugar de un string
+    serializer = BloqueSerializer(bloque, data=data, partial=True)
+    
     if serializer.is_valid():
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['DELETE'])

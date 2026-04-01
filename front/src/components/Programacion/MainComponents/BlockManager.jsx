@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Draggable } from '@fullcalendar/interaction';
 import { FaPlus, FaFolder, FaFolderOpen, FaPencilAlt, FaTrashAlt } from 'react-icons/fa';
 import EditCatModal from '../Modals/EditCatModal';
+import EditBlockModal from '../Modals/EditBlockModal';
 import { framesToFullCalendarDuration } from '../utils/DecodeTimes';
 import ConfirmationAlert from '../../utils/ConfirmationAlert';
 import './BlockManager.css';
@@ -21,6 +22,10 @@ const BlockManager = ({ categorias, createCat, createBlock, showAlert, reset }) 
     mode: 'cat',    // 'cat' o 'block'
     force: false 
   });
+
+  const [showEditBlockModal, setShowEditBlockModal] = useState(false);
+  const [selectedBlock, setSelectedBlock] = useState(null);
+  const [blockModalPosition, setBlockModalPosition] = useState({ top: 0, left: 0 });
 
   // Función para cerrar el alert
   const closeConfirm = () => setConfirmConfig({ ...confirmConfig, show: false });
@@ -58,6 +63,19 @@ const BlockManager = ({ categorias, createCat, createBlock, showAlert, reset }) 
     setBlock(block); 
     setShowModal(true);
   };
+
+  const handleOpenEditBlock = (e, bloque) => {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    
+    setBlockModalPosition({
+        top: rect.top + window.scrollY,
+        left: rect.left + window.scrollX + 40 // Un poquito más a la derecha para que no tape el cursor
+    });
+    
+    setSelectedBlock(bloque); 
+    setShowEditBlockModal(true);
+};
 
   const processDelete = async (id, isForce = false) => {
     closeConfirm(); // Cerramos el alert actual
@@ -123,6 +141,33 @@ const BlockManager = ({ categorias, createCat, createBlock, showAlert, reset }) 
       showAlert('error', 'Error de conexión');
     }
   };
+
+  const processUpdateBlock = async (updatedData) => {
+    try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/programacion/updateBlock/${updatedData.id}/`, {
+            method: 'PATCH',
+            headers: {
+                'Authorization': `Token ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                nombre: updatedData.nombre,
+                duracion_teorica: updatedData.duracion_teorica,
+                notas: updatedData.notas
+            })
+        });
+
+        if (response.ok) {
+            showAlert('success', 'Bloque actualizado correctamente');
+            reset(); // Refrescamos el catálogo para ver los cambios
+            setShowEditBlockModal(false);
+        } else {
+            showAlert('error', 'Error al actualizar el bloque');
+        }
+    } catch (error) {
+        showAlert('error', 'Error de conexión con el servidor');
+    }
+};
 
   return (
     <div className="block-manager" ref={containerRef}>
@@ -274,6 +319,13 @@ const BlockManager = ({ categorias, createCat, createBlock, showAlert, reset }) 
         blockData={block}
         position={modalPosition}
         refresh={reset}
+      />
+      <EditBlockModal
+        isVisible={showEditBlockModal}
+        onClose={() => setShowEditBlockModal(false)}
+        onSave={processUpdateBlock}
+        blockData={selectedBlock}
+        position={blockModalPosition}
       />
     </div>
   );
