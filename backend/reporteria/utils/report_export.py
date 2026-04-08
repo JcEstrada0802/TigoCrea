@@ -1,8 +1,26 @@
 def build_report_data(logs, headers, sistemas):
     keys_map = {
-        "SPOT TM": 0, "MEN+CINT TM": 1, "CINT TM": 2, "CAPS TM": 3,
-        "GRAF TM": 4, "CROPL TM": 4, "PROP TM": 5, "RA TM": 4, "CORT TM": 6, "GRAF 3D TM": 4,
-        "SEG TM": 6, "REELPRODUC TM": 7, "PRODUCPLIVE TM": 7, "FULL TM": 8
+        "SP TM": 0,             #SPOT
+        "M+C TM": 1,            #MEN+CINT
+        "M+CG TM": 1,           #MEN+CINT GRABADO
+        "CIN TM": 2,            #CINTILLO
+        "CAPS TM": 3,
+        "GRAF TM": 4,           #GRAFICO
+        "CRL TM": 4,            #CROP-L
+        "RA TM": 4,             #REALIDAD
+        "GRAF 3D TM": 4,        #GRAFICO 3D
+        "LM TM": 4,             #LOGO MARCADOR
+        "PROP TM": 5,           #PROPIEDAD
+        "COR TM": 6,            #CORTINILLA
+        "SEG TM": 6,            #SEGMENTO
+        "SJP TM": 6,            #SEGMENTO JDP
+        "PP TM": 7,             #PRODUCT PLACEMENT
+        "PPS TM": 7,            #PRODUCT PLACEMENT SHOW
+        "REELPRODUC TM": 7,
+        "PRODUCPLIVE TM": 7,
+        "FT TM": 8,             #FULLTRACK
+        "FTS TM": 9,            #FULLTRACK SEDE
+        "CUP TM": 4,
     }
 
     summary_logs = [
@@ -13,8 +31,9 @@ def build_report_data(logs, headers, sistemas):
         {"property": "GRÁFICO", "contratado": 0, "transmitido": 0},
         {"property": "PROPIEDAD", "contratado": 0, "transmitido": 0},
         {"property": "SEGMENTOS", "contratado": 0, "transmitido": 0},
-        {"property": "PRODUCT PLACEMENT", "contratado": 0, "transmitido": 0},
+        {"property": "PRODUCT", "contratado": 0, "transmitido": 0},
         {"property": "FULL TRACK", "contratado": 0, "transmitido": 0},
+        {"property": "FULL TRACK SEDE", "contratado": 0, "transmitido": 0},
     ]
 
     column_key_map = {
