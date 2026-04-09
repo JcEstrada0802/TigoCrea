@@ -23,7 +23,8 @@ def procesar_archivo(ruta: Path, system_name) -> dict:
         "ProduccionTS+": "MediaPlayTS+",
         "SquidPlus": "Squid TS+",
         "SquidPlusLat": "Squid Latino",
-        "Xpression": "Xpression"
+        "Xpression": "Xpression",
+        "Igson-Nica": "IgsonNica"
     }
     real_system_name = folder_to_system.get(system_name)
 
@@ -60,6 +61,7 @@ def procesar_archivo(ruta: Path, system_name) -> dict:
             case "SquidPlus": PSF(ruta, "Squid TS+", log_file_obj)
             case "SquidPlusLat": PSF(ruta, "Squid Latino", log_file_obj)
             case "Xpression": PXP(ruta, log_file_obj)
+            case "Igson-Nica": PNF(ruta, "IgsonNica", log_file_obj)
     except Exception as e:
         print(f"[ERROR] Falló procesar {ruta}: {e}")
         log_file_obj.delete()
@@ -489,13 +491,83 @@ def PRF(ruta, sistema, log_file_obj):
 def PUP(ruta):
     pass
 
-# PROCESS REGIONPLAYER
+# PROCESS REGION PLAYER
 def PRP(ruta):
     file = os.path.basename(ruta)
     pass
 
-# ---------- FUNCIONES PARA LIMPIAR DATOS -----------
+# PROCESS PLAYER IGSON (NICARAGUA)
+import numpy as np # Asegurate de tener este import
 
+def PNF(ruta, sistema, log_file_obj):
+    # ... (tus set_option se quedan igual) ...
+    
+    col_specs = [
+        (1, 9), (10, 21), (22, 70), (74, 122), (123, 134), (154, 162)
+    ]
+    nombres = ["Date", "Time", "ID", "Title", "Duration", "Device"]
+
+    df_raw = pd.read_fwf(
+        ruta,
+        colspecs=col_specs,
+        names=nombres,
+        skiprows=2, 
+        engine="python",
+        dtype=str
+    )
+    
+    # LIMPIEZA INICIAL: Quitar espacios y convertir NaNs de Pandas a Nones de Python
+    df_raw = df_raw.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
+    df_raw = df_raw.replace({np.nan: None, "nan": None, "NaN": None})
+
+    # Procesar Tiempos
+    df_raw['start_time'] = pd.to_datetime(
+        df_raw['Date'] + ' ' + df_raw['Time'], 
+        format='%d/%m/%y %H:%M:%S.%f', 
+        errors='coerce'
+    ).dt.floor("s")
+
+    df_raw['duration_td'] = pd.to_timedelta(
+        df_raw['Duration'].str.replace('.', ':', n=2).str.replace(r':(\d+)$', r'.\1', regex=True),
+        errors='coerce'
+    ).fillna(pd.Timedelta(seconds=0))
+
+    df_raw['end_time'] = (df_raw['start_time'] + df_raw['duration_td']).dt.floor("s")
+
+    # FILTRO CRÍTICO: Quitar cualquier cosa que no tenga tiempo válido antes de seguir
+    df_raw = df_raw.dropna(subset=['start_time', 'end_time'])
+    
+    # Duración limpia para la DB
+    df_raw['duration_db'] = (df_raw['end_time'] - df_raw['start_time']).astype(str).str.split().str[-1]
+
+    # METADATA BLINDADA: Usamos una función para asegurar que no se cuele ningún NaN
+    def clean_metadata(row):
+        return {
+            "status": row['ID'] if (row['Title'] and "logo" in str(row['Title']).lower()) else None,
+            "device": row['Device'] if row['Device'] else None,
+            "tipo": "SERVER" if row['Device'] and "SERVER" in str(row['Device']).upper() else "CG"
+        }
+
+    df_raw['metadata'] = df_raw.apply(clean_metadata, axis=1)
+
+    # DATAFRAME FINAL
+    df_final = pd.DataFrame({
+        'start_time': df_raw['start_time'],
+        'end_time': df_raw['end_time'],
+        'duration': df_raw['duration_db'],
+        'title': df_raw['ID'].str.replace('_', ' ').str.replace('-', ' ') if df_raw['ID'].any() else "",
+        'clipname': df_raw['Title'].str.replace('_', ' ').str.replace('-', ' ') if df_raw['Title'].any() else "",
+        'content': df_raw['Title'].str.replace('_', ' ').str.replace('-', ' ') if df_raw['Title'].any() else "", 
+        'event_type': df_raw['Device'],
+        'metadata': df_raw['metadata']
+    })
+
+    # Limpieza final de strings por si acaso algo quedó nulo
+    df_final[['title', 'clipname', 'content']] = df_final[['title', 'clipname', 'content']].fillna("")
+    upgrade(df_final, log_file_obj, "Igson-Nicaragua", "Log de Nicaragua")
+    return df_final
+
+# ---------- FUNCIONES PARA LIMPIAR DATOS -----------
 
 # FUNCIÓN PARA OBTENER EL PB DE IGSONCUE
 def extract_program_block(path_string):
