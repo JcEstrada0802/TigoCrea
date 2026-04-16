@@ -7,6 +7,33 @@ const EditBlockModal = ({ isVisible, onClose, onSave, position, blockData }) => 
     const [duracion, setDuracion] = useState('00:00:00');
     const [notas, setNotas] = useState('');
     const modalRef = useRef(null);
+    const [adjustedPosition, setAdjustedPosition] = useState({ top: 0, left: 0 });
+
+    useEffect(() => {
+        if (isVisible && position && modalRef.current) {
+            const modalRect = modalRef.current.getBoundingClientRect();
+            const margin = 20; // Espacio mínimo con el borde de la pantalla
+
+            let top = position.top;
+            let left = position.left;
+
+            // Ajuste Vertical: Si se sale por abajo, súbelo
+            if (top + modalRect.height > window.innerHeight) {
+                top = window.innerHeight - modalRect.height - margin;
+            }
+
+            // Ajuste Horizontal: Si se sale por la derecha, muévelo a la izquierda
+            if (left + modalRect.width > window.innerWidth) {
+                left = window.innerWidth - modalRect.width - margin;
+            }
+
+            // Evitar que se salga por arriba (si la pantalla es muy pequeña)
+            top = Math.max(margin, top);
+            left = Math.max(margin, left);
+
+            setAdjustedPosition({ top, left });
+        }
+    }, [isVisible, position]);
 
     // Cargar datos del bloque cuando el modal se hace visible
     useEffect(() => {
@@ -66,8 +93,8 @@ const EditBlockModal = ({ isVisible, onClose, onSave, position, blockData }) => 
             ref={modalRef} 
             className="fixed bg-white w-full max-w-sm p-6 rounded-2xl shadow-2xl border border-gray-100 transform transition-all z-[2000]"
             style={{
-                top: position?.top || '20%',  
-                left: position?.left || '20%', 
+                top: `${adjustedPosition.top}px`,  
+                left: `${adjustedPosition.left}px`,
             }}
         >
             {/* Header */}

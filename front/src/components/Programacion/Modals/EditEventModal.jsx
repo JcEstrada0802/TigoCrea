@@ -1,14 +1,38 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { Trash2 } from 'lucide-react';
 import ConfirmationAlert from '../../utils/ConfirmationAlert';
 
 const EditEventModal = ({ x, y, event, onClose, onSave, onDelete }) => {
   const [nombre, setNombre] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [coords, setCoords] = useState({ top: y, left: x });
+  const modalRef = useRef(null);
 
   useEffect(() => {
     if (event) setNombre(event.title || '');
   }, [event]);
+
+  useLayoutEffect(() => {
+    if (modalRef.current) {
+      const rect = modalRef.current.getBoundingClientRect();
+      const margin = 15;
+      
+      let finalX = x;
+      let finalY = y;
+
+      // Si se sale por la derecha
+      if (x + rect.width > window.innerWidth) {
+        finalX = window.innerWidth - rect.width - margin;
+      }
+
+      // Si se sale por abajo
+      if (y + rect.height > window.innerHeight) {
+        finalY = window.innerHeight - rect.height - margin;
+      }
+
+      setCoords({ top: finalY, left: finalX });
+    }
+  }, [x, y]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -31,8 +55,13 @@ const EditEventModal = ({ x, y, event, onClose, onSave, onDelete }) => {
       
       {/* El Modal - Estilo ContextMenu */}
       <div 
+        ref={modalRef}
         className="fixed z-[9999] w-64 bg-white/95 backdrop-blur-md border border-gray-100 rounded-2xl shadow-2xl p-4 flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200"
-        style={{ top: y, left: x }}
+        style={{ 
+          top: coords.top, 
+          left: coords.left,
+          visibility: coords.top === y && coords.left === x && modalRef.current ? 'visible' : 'visible' 
+        }}
       >
         <div className="px-1 py-1 text-[9px] font-black text-gray-400 uppercase tracking-widest mb-3 flex justify-between items-center">
           <div className="flex items-center gap-2">
