@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.db import transaction
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
-from django.db.models import ProtectedError
+from django.db.models import ProtectedError, Sum
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
@@ -342,6 +342,11 @@ def createEvent(request):
 
         return Response({
             "id": nuevo_evento.id,
+            "title": nuevo_evento.title,
+            "start": nuevo_evento.start,
+            "end": nuevo_evento.end,
+            "backgroundColor": nuevo_evento.background_color,
+            "extendedProps": nuevo_evento.extended_props,
             "message": "Evento creado exitosamente"
         }, status=status.HTTP_201_CREATED)
 
@@ -569,8 +574,37 @@ def savePlaylist(request):
                 ))
 
             PlaylistItem.objects.bulk_create(items_a_crear)
-        return Response({"message": f"{len(items_a_crear)} eventos creados"}, 
-                        status=status.HTTP_201_CREATED)
+            total_frames_reales = PlaylistItem.objects.filter(evento=evento).aggregate(
+                total=Sum('segmento__duracion')
+            )['total'] or 0
+
+            bloque_id = evento.extended_props.get('bloque_id')
+            duracion_teorica = int(evento.extended_props.get('duracion_ff', 0))
+            
+            if bloque_id:
+                bloque = Bloque.objects.filter(id=bloque_id).first()
+                if bloque:
+                    duracion_teorica = bloque.duracion_teorica
+
+            if not isinstance(evento.extended_props, dict):
+                evento.extended_props = {}
+            
+            MARGEN_TOLERANCIA_FRAMES = 3596
+            diferencia = abs(total_frames_reales - duracion_teorica)
+            print(diferencia)
+            evento.extended_props['lleno'] = diferencia <= MARGEN_TOLERANCIA_FRAMES
+            
+            # Guardamos solo el campo necesario para no afectar otros props
+            evento.save(update_fields=['extended_props'])
+        return Response({
+            "message": f"{len(items_a_crear)} items creados",
+            "info": {
+                "esta_lleno": evento.extended_props['lleno'],
+                "total_reales": total_frames_reales,
+                "duracion_teorica": duracion_teorica,
+                "diferencia": total_frames_reales - duracion_teorica
+            }
+        }, status=status.HTTP_201_CREATED)
     except Exception as e:
         return Response(
             {"error": f"Error inesperado: {str(e)}"},

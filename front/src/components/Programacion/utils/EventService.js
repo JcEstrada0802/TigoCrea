@@ -9,8 +9,11 @@ export const createEventInDB = async (apiUrl, token, eventData) => {
       end: eventData.end,
       calendar_id: eventData.calendar_id,
       background_color: eventData.backgroundColor, 
-      extended_props: eventData.extendedProps || {}
-    }, {
+      extended_props: {
+        ...eventData.extendedProps,
+        lleno: eventData.extendedProps?.lleno ?? false 
+      }
+    }, {  
       headers: { 'Authorization': `Token ${token}` }
     });
     return response.data;
@@ -23,9 +26,17 @@ export const createEventInDB = async (apiUrl, token, eventData) => {
 // BULKF SAVE PARA COPIAR Y PEGAR (BLOQUE, DIA, SEMANA)
 export const bulkCreateEventsInDB = async (apiUrl, token, eventsArray) => {
   try {
+    const eventosConEstado = eventsArray.map(event => ({
+      ...event,
+      extended_props: {
+        ...event.extended_props,
+        lleno: event.extended_props?.lleno ?? false
+      }
+    }));
+
     const response = await axios.post(
       `${apiUrl}/programacion/bulkSave/`, 
-      { eventos: eventsArray }, 
+      { eventos: eventosConEstado }, 
       { headers: { Authorization: `Token ${token}` } }
     );
     return response.data;

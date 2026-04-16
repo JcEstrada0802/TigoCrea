@@ -223,6 +223,7 @@ const BlockManager = ({ categorias, createCat, createBlock, showAlert, reset }) 
                 {/* Borrar bloque */}
                 <button 
                   className="add-block-btn" 
+                  title="Eliminar esta categoría"
                   onClick={(e) => {
                     e.stopPropagation();
                     setConfirmConfig({

@@ -500,7 +500,6 @@ def PRP(ruta):
 import numpy as np # Asegurate de tener este import
 
 def PNF(ruta, sistema, log_file_obj):
-    # ... (tus set_option se quedan igual) ...
     
     col_specs = [
         (1, 9), (10, 21), (22, 70), (74, 122), (123, 134), (154, 162)

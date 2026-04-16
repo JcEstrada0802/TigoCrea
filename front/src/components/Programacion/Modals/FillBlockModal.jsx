@@ -3,7 +3,7 @@ import { FaTimes, FaLayerGroup, FaTrash, FaListOl, FaSave, FaExclamationTriangle
 import CatalogManager from "../MainComponents/CatalogManager";
 import { createPlaylist } from '../utils/EventService';
 
-function FillBlockModal({ event, onClose, showAlert }) {
+function FillBlockModal({ event, onClose, showAlert, updateEventState }) {
   const [datosCatalogo, setDatosCatalogo] = useState([]);
   const [loading, setLoading] = useState(true);
   const [playlist, setPlaylist] = useState([]);
@@ -30,17 +30,33 @@ function FillBlockModal({ event, onClose, showAlert }) {
   // --- CÁLCULOS DE PLAYLIST CON END TIME ---
   const playlistConTiempos = useMemo(() => {
     let currentFrameOffset = 0;
+    const baseDate = event?.start;
     return playlist.map((item) => {
       const startTC = formatOffsetToTC(currentFrameOffset);
       const startTC_FF = currentFrameOffset;
       const endFrameOffset = currentFrameOffset + item.duracion;
       const endTC = formatOffsetToTC(endFrameOffset);
+
+      const [tcH, tcM, tcS, tcF] = startTC.split(':').map(Number);
+      const itemDate = new Date(baseDate);
+      itemDate.setHours(itemDate.getHours() + tcH);
+      itemDate.setMinutes(itemDate.getMinutes() + tcM);
+      itemDate.setSeconds(itemDate.getSeconds() + tcS);
+
+      const hh = itemDate.getHours().toString().padStart(2, '0');
+      const mm = itemDate.getMinutes().toString().padStart(2, '0');
+      const ss = itemDate.getSeconds().toString().padStart(2, '0');
+      const ff = tcF.toString().padStart(2, '0');
+
+      // La "Start Hour" ahora coincidirá perfectamente con el reloj del máster
+      const startHour = `${hh}:${mm}:${ss}:${ff}`;
       
       const data = { 
         ...item, 
         startTC_FF,
         startTC, 
         endTC,
+        startHour,
         // Inicializamos valores si no existen
         customID: item.customID || "",
         scotys: item.scotys || "Off"
@@ -49,7 +65,7 @@ function FillBlockModal({ event, onClose, showAlert }) {
       currentFrameOffset = endFrameOffset;
       return data;
     });
-  }, [playlist, formatOffsetToTC]);
+  }, [playlist, formatOffsetToTC, event?.start]);
 
   const stats = useMemo(() => {
     const realFF = playlist.reduce((acc, item) => acc + item.duracion, 0);
@@ -105,7 +121,6 @@ function FillBlockModal({ event, onClose, showAlert }) {
   }, []);
 
   const SavePlaylist = async() => {
-    console.log("Saved:", playlistConTiempos)
     const dataToSave = playlistConTiempos.map((item, index) => ({
       segmento_id: item.id, // El ID de la tabla Segmento
       orden: index,
@@ -119,6 +134,11 @@ function FillBlockModal({ event, onClose, showAlert }) {
     try {
       // Mandamos el ID del bloque (evento) y la lista de items
       const response = await createPlaylist(apiUrl, token, event.id, dataToSave);
+      const { esta_lleno, total_reales } = response.info;
+      updateEventState(event.id, {
+        lleno: esta_lleno,
+        total_frames_reales: total_reales
+      });
       showAlert('success', 'Evento actualizado correctamente.');
       onClose();
     } catch (error) {
@@ -145,7 +165,6 @@ function FillBlockModal({ event, onClose, showAlert }) {
           // No calculamos startTC/endTC aquí porque tu useMemo 'playlistConTiempos'
           // lo hará automáticamente al detectar que 'playlist' cambió.
         }));
-        console.log("fetched: ", formattedPlaylist);
         setPlaylist(formattedPlaylist);
       }
     } catch (error) {
@@ -205,6 +224,7 @@ function FillBlockModal({ event, onClose, showAlert }) {
                       <th className="px-3 py-2 w-10 text-center">#</th>
                       <th className="px-3 py-2 w-28 text-center">Start Time</th>
                       <th className="px-3 py-2 w-28 text-center">End Time</th>
+                      <th className="px-3 py-2 w-28 text-center">Start Hour</th>
                       <th className="px-3 py-2 w-28 text-right">Duración</th>
                       <th className="px-3 py-2">Título / ID Media</th>
                       <th className="px-2 py-2 w-16 text-center">ID</th>
@@ -221,6 +241,9 @@ function FillBlockModal({ event, onClose, showAlert }) {
 
                         <td className="px-3 py-1.5 font-mono text-[11px] font-bold text-blue-600 text-center">{item.startTC}</td>
                         <td className="px-3 py-1.5 font-mono text-[11px] font-bold text-slate-500 dark:text-slate-400 text-center">{item.endTC}</td>
+                        <td className="px-3 py-1.5 font-mono text-[11px] font-black text-purple-600 dark:text-purple-400 text-center bg-purple-50/30 dark:bg-purple-900/10">
+                          {item.startHour}
+                        </td>
                         <td className="px-3 py-1.5 text-right font-mono">
                           <div className="flex flex-col">
                             <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300">{item.duracion_tc}</span>
@@ -249,7 +272,7 @@ function FillBlockModal({ event, onClose, showAlert }) {
                         <td className="px-2 py-1.5">
                           <input 
                             type="text"
-                            value={item.tape}
+                            value={item.tape || ""}
                             onChange={(e) => updatePlaylistItem(item.uniqueId, 'tape', e.target.value)}
                             placeholder="N° Cinta"
                             className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded px-1 py-0.5 text-[10px] font-mono text-center focus:outline-none focus:border-blue-500 dark:text-slate-200 transition-colors"

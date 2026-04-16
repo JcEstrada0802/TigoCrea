@@ -371,3 +371,26 @@
   background-size: 8px;
   border-width: 1px;
 }
+
+/* ==========================================================================
+   LED INDICADOR DE BLOQUE
+   ========================================================================== */
+
+.led-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 5px;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+}
+
+.led-green {
+  background-color: #2ecc71;
+  box-shadow: 0 0 8px #2ecc71; /* Efecto de brillo */
+}
+
+.led-red {
+  background-color: #e74c3c;
+  box-shadow: 0 0 8px #e74c3c;
+}

@@ -142,12 +142,12 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
   const handlePasteAction = async (targetEvent) => {
     const calendarApi = calendarRef.current.getApi();
     
-    // --- PASO 0: NORMALIZAR RANGO (Lunes a Lunes o Día completo) ---
+    // NORMALIZAR RANGO (Lunes a Lunes o Día completo) ---
     let pasteStart = new Date(targetEvent.start);
     let pasteEnd = new Date(pasteStart);
 
     if (clipboard.type === 'WEEK') {
-      // Forzamos el inicio al Lunes 00:00:00 de esa semana
+      // Forzar el inicio al Lunes 00:00:00 de esa semana
       const day = pasteStart.getDay();
       const diff = pasteStart.getDate() - day + (day === 0 ? -6 : 1);
       pasteStart = new Date(pasteStart.setDate(diff));
@@ -158,7 +158,7 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
       pasteEnd.setDate(pasteStart.getDate() + 7);
 
     } else if (clipboard.type === 'DAY') {
-      // Forzamos el inicio a las 00:00:00 de ese día
+      // Forzar el inicio a las 00:00:00 de ese día
       pasteStart.setHours(0, 0, 0, 0);
       pasteEnd = new Date(pasteStart);
       pasteEnd.setDate(pasteStart.getDate() + 1);
@@ -167,7 +167,7 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
       pasteEnd = null; 
     }
 
-    // --- FASE 1: LIMPIEZA DE LA SEMANA/DÍA EN DB Y UI ---
+    // --- LIMPIEZA DE LA SEMANA/DÍA EN DB Y UI ---
     if (pasteEnd) {
       const existingEvents = calendarApi.getEvents().filter(ev => {
         return ev.start >= pasteStart && ev.start < pasteEnd;
@@ -190,7 +190,7 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
       }
     }
 
-    // --- FASE 2: PEGADO DE NUEVOS EVENTOS ---
+    // --- PEGADO DE NUEVOS EVENTOS ---
     // Usamos targetEvent.start original, pasteItems ya sabe buscar el lunes internamente
     const newEventsUI = pasteItems(new Date(targetEvent.start), clipboard, calendarApi);
     
@@ -247,6 +247,10 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
     try {
       const dataSaved = await createEventInDB(apiUrl, token, nuevoEvento);
       info.event.setProp('id', dataSaved.id);
+      setEventos(prev => [...prev, {
+        ...dataSaved, // Trae el ID, title, start, end, extendedProps, etc.
+        id: String(dataSaved.id) // Lo aseguramos como String para el match del LED
+      }]);
     } catch (e) {
       info.event.remove();
       console.log(e)
@@ -475,6 +479,48 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
     }
   }
 
+  const renderEventContent = (eventInfo) => {
+    const estaLleno = eventInfo.event.extendedProps.lleno;
+    
+    // Formateamos las horas para que se vean limpias (ej: 07:30 - 08:00)
+    const startTime = eventInfo.event.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+    const endTime = eventInfo.event.end?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+
+    return (
+      <div className="custom-event-container" style={{ fontSize: '0.75rem', lineHeight: '1.1' }}>
+        <div className="event-title" style={{ 
+          overflow: 'hidden', 
+          textOverflow: 'ellipsis',
+          fontWeight: '500'
+        }}>
+          <span className={`led-indicator ${estaLleno ? 'led-green' : 'led-red'}`}></span>
+          {eventInfo.event.title}
+        </div>
+        <div className="event-top-row" style={{ display: 'flex', alignItems: 'center', marginBottom: '2px' }}>
+          <b className="event-time" style={{ color: '#FFF', fontSize: '0.62rem', fontWeight: '400'}}>
+            {startTime} {endTime ? `- ${endTime}` : ''}
+          </b>
+        </div>
+      </div>
+    );
+  };
+
+  const updateEventInState = (eventId, updatedProps) => {
+    setEventos(prev => prev.map(ev => {
+      if (String(ev.id) === String(eventId)) {
+        return {
+          ...ev,
+          lastUpdated: Date.now(),
+          extendedProps: {
+            ...ev.extendedProps,
+            ...updatedProps
+          }
+        };
+      }
+      return ev;
+    }));
+  };
+
   return (
     <div className='calendar-container'>
       <div className="channel-selector-header-center">
@@ -493,6 +539,7 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
         key={selectedCalId}
         ref={calendarRef}
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+        eventContent={renderEventContent} // <-- Aquí sucede la magia
         aspectRatio={isCompact ? 0.5 : 1.35}
         initialView="timeGridWeek"
         firstDay={1}
@@ -637,7 +684,7 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
           event={fillModal.event}
           onClose={()=> setFillModal({...fillModal, show: false})}
           showAlert={showAlert}
-          // DEBO AGREGAR FUNCION PARA GUARDAR EL BLOQUE YA LLENO
+          updateEventState={updateEventInState}
         />
       )}
     </div>
