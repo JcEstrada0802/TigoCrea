@@ -55,6 +55,20 @@ const exportPlaylistToCLF = async(clfName, fecha, calendarId) => {
         );
         return response.data.task_id; 
     }catch (error){
+        if (error.response && error.response.status === 400) {
+            const serverMsg = error.response.data;
+            
+            // Si el backend nos mandó la lista de bloques faltantes
+            if (serverMsg.bloques) {
+                const nombres = serverMsg.bloques.join(", ");
+                console.warn(`Bloques pendientes: ${nombres}`);
+                
+                // Creamos un error personalizado que el componente pueda atrapar
+                const customError = new Error("Bloques incompletos");
+                customError.bloques = serverMsg.bloques;
+                throw customError;
+            }
+        }
         console.error("Error en exportPlaylistToCLF: ", error);
         throw error;
     }

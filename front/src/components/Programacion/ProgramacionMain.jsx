@@ -175,7 +175,8 @@ function ProgramacionMain() {
     setExportConfig({
       clfName: nombre,
       fecha: fecha,
-      calendarId: calendario
+      calendarId: calendario,
+      trigger: Date.now()
     })
   }
 

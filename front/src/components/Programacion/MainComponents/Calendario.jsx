@@ -12,6 +12,7 @@ import { bulkCreateEventsInDB, createEventInDB, bulkUpdateEventsInDB, updateEven
 import './Calendario.css';
 import axios from 'axios';
 import pollReportStatus from '../../utils/PollReportStatus';
+import { Calendar } from 'lucide-react';
 
 let lastProcessedTrigger = null;
 let lastProcessedSaveTrigger = null;
@@ -429,15 +430,21 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
                     filename = exportConfig.clfName;
                     const fecha = exportConfig.fecha;
                     const calendarId = exportConfig.calendarId;
-                    task_id = await exportPlaylistToCLF(filename, fecha, calendarId);
-                    console.log(task_id);
-                    showAlert('success', 'CLF exportando, por favor espere...');
+                    try {
+                        task_id = await exportPlaylistToCLF(filename, fecha, calendarId);
+                        showAlert('success', 'Exportación iniciada con éxito.');
+                    } catch (error) {
+                        if (error.message === "Bloques incompletos") {
+                            showAlert('error', `No se puede exportar. Faltan llenar: ${error.bloques.join(', ')}`);
+                        } else {
+                            showAlert('error', 'Ocurrió un error inesperado al exportar.');
+                        }
+                    }
                   }
                   if (task_id) {
                       // Iniciamos el polling
                       pollReportStatus(task_id, token, filename, extension);
                   }
-                  showAlert('success', 'PDF exportando, por favor espere...');
               } catch (error) {
                   console.error("Error en el flujo de PDF:", error);
                   lastProcessedExportTrigger = null;

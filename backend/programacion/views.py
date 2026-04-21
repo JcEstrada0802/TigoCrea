@@ -651,8 +651,19 @@ def exportPlaylist(request):
         return Response({"error","Faltan campos. Campos necesarios: 'calendar_id', 'fecha'"},
                         status=status.HTTP_400_BAD_REQUEST)
     try:
-        # Mandamos a llamar la tarea de Celery de forma asíncrona
-        # .delay() es lo que mete la tarea a la cola (Redis/RabbitMQ)
+        bloques_incompletos = Evento.objects.filter(
+            calendario_id=calendar_id,
+            start__date=fecha,
+            extended_props__lleno=False # Filtro directo sobre el campo JSON
+        )
+
+        if bloques_incompletos.exists():
+            nombres_faltantes = list(bloques_incompletos.values_list('title', flat=True))
+            return Response({
+                "error": "No se puede exportar. Hay bloques incompletos.",
+                "bloques": nombres_faltantes
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
         task = generate_castlist_xml.delay(calendar_id, fecha)
 
         return Response({
