@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { FaCheck, FaPencilAlt, FaPalette } from 'react-icons/fa';
 import { updateCatBlock } from '../utils/CatalogService';
 
 const EditCatModal = ({ isVisible, onClose, onFinish, blockData, position, refresh }) => {
     const [nombre, setNombre] = useState('');
     const [color, setColor] = useState('#2563EB');
+    const [adjustedPos, setAdjustedPos] = useState({ top: 0, left: 0 });
     const modalRef = useRef(null);
     const apiUrl = import.meta.env.VITE_API_URL;
     const token = localStorage.getItem("token");
@@ -15,6 +16,32 @@ const EditCatModal = ({ isVisible, onClose, onFinish, blockData, position, refre
             setColor(blockData.color || '#2563EB');
         }
     }, [isVisible, blockData]);
+
+    useLayoutEffect(() => {
+        if (isVisible && position && modalRef.current) {
+            const rect = modalRef.current.getBoundingClientRect();
+            const margin = 15;
+            
+            let finalTop = position.top;
+            let finalLeft = position.left;
+
+            // Si se sale por abajo
+            if (finalTop + rect.height > window.innerHeight) {
+                finalTop = window.innerHeight - rect.height - margin;
+            }
+
+            // Si se sale por la derecha
+            if (finalLeft + rect.width > window.innerWidth) {
+                finalLeft = window.innerWidth - rect.width - margin;
+            }
+
+            // Evitar que se salga por arriba o izquierda (casos extremos)
+            finalTop = Math.max(margin, finalTop);
+            finalLeft = Math.max(margin, finalLeft);
+
+            setAdjustedPos({ top: finalTop, left: finalLeft });
+        }
+    }, [isVisible, position]);
 
     // Close on click outside or ESC
     useEffect(() => {
@@ -51,8 +78,9 @@ const EditCatModal = ({ isVisible, onClose, onFinish, blockData, position, refre
             ref={modalRef} 
             className="fixed bg-white w-64 p-5 rounded-2xl shadow-2xl border border-gray-100 z-[2000]"
             style={{
-                top: position?.top || '20%',  
-                left: position?.left || '20%', 
+                top: `${adjustedPos.top}px`,  
+                left: `${adjustedPos.left}px`,
+                visibility: adjustedPos.top === 0 ? 'hidden' : 'visible'
             }}
         >
             <div className="flex items-center gap-2 mb-4 text-[#001EB4]">
