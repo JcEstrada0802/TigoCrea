@@ -6,6 +6,7 @@ import ReporteriaMain from './components/Reporteria/ReporteriaMain';
 import CatalogacionMain from './components/Catalogacion/CatalogacionMain';
 import ProgramacionMain from './components/Programacion/ProgramacionMain';
 import PerfilMain from './components/Perfil/PerfilMain';
+import VentasMain from './components/ventas/VentasMain';
 import { AuthProvider } from './components/authComponents/AuthContext';
 import './index.css';
 
@@ -17,10 +18,11 @@ function App() {
           <Route path='/Login' element={<Login/>}/>
           <Route path='/' element={<ProtectedRoute><Layout/></ProtectedRoute>}>
           
-          <Route index element={<Navigate to="/catalogo" replace />} /> 
-          <Route path='catalogo' element={<ProtectedRoute allowedGroups={['AdLogger','OnAirLogger']}><CatalogacionMain/></ProtectedRoute>}/> 
-          <Route path='programacion' element={<ProtectedRoute allowedGroups={['AdLogger','OnAirLogger']}><ProgramacionMain/></ProtectedRoute>}/>   
+          <Route index element={<Navigate to="/perfil" replace />} /> 
+          <Route path='catalogo' element={<ProtectedRoute allowedGroups={['OnAirLogger']}><CatalogacionMain/></ProtectedRoute>}/> 
+          <Route path='programacion' element={<ProtectedRoute allowedGroups={['OnAirLogger']}><ProgramacionMain/></ProtectedRoute>}/>   
           <Route path='reporteria' element={<ProtectedRoute allowedGroups={['Viewer']}><ReporteriaMain/></ProtectedRoute>}/>
+          <Route path='ventas' element={<ProtectedRoute allowedGroups={['AdLogger']}><VentasMain/></ProtectedRoute>}/>
           <Route path='perfil' element={<ProtectedRoute><PerfilMain/></ProtectedRoute>}/>  
 
           </Route>
