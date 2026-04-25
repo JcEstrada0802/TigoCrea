@@ -41,14 +41,14 @@ def procesar_archivo(ruta: Path, system_name) -> dict:
                 defaults={'upload_date': datetime.now(tz=ZoneInfo("America/Guatemala"))}
             )
     except Exception as e:
-            print(f"[DEBUG] Error inesperado: {e}")
-            created = False
+        print(f"{get_now()} [ERROR] Error inesperado en {file_name}: {e}")
+        created = False
 
     if not created:
-        print(f"[SKIP] El archivo '{file_name}' ya está en la DB o procesándose.")
+        print(f"{get_now()} [SKIP] El archivo '{file_name}' ya está en la DB.")
         return
     
-    print(f"PROCESANDO: {file_name}...")
+    print(f"{get_now()} [PROCESANDO] {file_name} del sistema {real_system_name}...")
 
     try:
         match system_name:
@@ -63,7 +63,7 @@ def procesar_archivo(ruta: Path, system_name) -> dict:
             case "Xpression": PXP(ruta, log_file_obj)
             case "Igson-Nica": PNF(ruta, "IgsonNica", log_file_obj)
     except Exception as e:
-        print(f"[ERROR] Falló procesar {ruta}: {e}")
+        print(f"{get_now()} [ERROR] Falló procesar {file_name}: {e}")
         log_file_obj.delete()
 
 # PROCESS AIR MANAGER FILES
@@ -570,25 +570,28 @@ def PNF(ruta, sistema, log_file_obj):
 
 # FUNCIÓN PARA OBTENER EL PB DE IGSONCUE
 def extract_program_block(path_string):
-    if pd.isna(path_string) or path_string is None:
-        return None
-    
-    # Normaliza las barras (Windows usa \) y divide
-    # La lista será: ['M:', 'MEDIA-PLAYER', 'TSN', '20']
-    parts = path_string.replace('\\', '/').split('/')
-    
-    # Quitamos partes vacías o el nombre del archivo si existiera
-    parts = [p for p in parts if p.strip()]
+    try:
+        if pd.isna(path_string) or path_string is None:
+            return None
+        
+        # Normaliza las barras y divide
+        # La lista será: ['M:', 'MEDIA-PLAYER', 'TSN', '20']
+        parts = path_string.replace('\\', '/').split('/')
+        
+        # Quitamos partes vacías o el nombre del archivo si existiera
+        parts = [p for p in parts if p.strip()]
 
-    # El programa/bloque suele ser la segunda carpeta más cercana al final
-    # Ejemplo: parts[-2]
-    # Si la lista tiene al menos dos elementos, devolvemos el penúltimo
-    if len(parts) >= 2:
-        return parts[2]
-    elif len(parts) == 1:
-        return parts[0] # Solo por si acaso la ruta es muy corta
-    else:
-        return None
+        # El programa/bloque suele ser la segunda carpeta más cercana al final
+        # Ejemplo: parts[-2]
+        # Si la lista tiene al menos dos elementos, devolvemos el penúltimo
+        if len(parts) >= 2:
+            return parts[2]
+        elif len(parts) == 1:
+            return parts[0] # Solo por si acaso la ruta es muy corta
+        else:
+            return None
+    except Exception as e:
+        return ""
 
 # FUNCIÓN PARA FORMATEAR EL DURATION DE MARSIS
 def parse_duration_to_timedelta(duration_str):
@@ -615,9 +618,12 @@ def clean_start_time(time_str):
     return match.group(1) if match else None
 
 def extract_start_time(time_info_str):
-    """Extrae el start_time de 'log_time: start_time' o devuelve None si falla."""
+    "Extrae el start_time de 'log_time: start_time' o devuelve None si falla."
     if isinstance(time_info_str, str) and ': ' in time_info_str:
         # Si contiene el separador esperado, extrae la parte posterior
         return time_info_str.split(": ", 1)[1]
     # Si no es un string o no tiene el formato, devuelve None
     return None
+
+def get_now():
+    return datetime.now(tz=ZoneInfo("America/Guatemala")).strftime("[%d/%m/%Y %H:%M:%S]")
