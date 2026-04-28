@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 // Importamos los iconos exactos que ya usás en tu Sidebar
-import { Package, Users, Building, FileText } from 'lucide-react';
+import { Package, Users, Building, FileText, BarChart3 } from 'lucide-react';
 
 const tabs = [
   { id: 'Agencias', label: 'Agencias', icon: Building }, // Usamos Building para Agencias
   { id: 'Clientes', label: 'Clientes', icon: Users },   // Icono de usuarios
   { id: 'Paquetes', label: 'Paquetes', icon: Package }, // Icono de caja/paquete
   { id: 'Pautas', label: 'Pautas', icon: FileText },   // Icono de documento
+  { id: 'Consolidado', label: 'Consolidado', icon: BarChart3}
 ];
 
 function TabBar({ setter }) {
