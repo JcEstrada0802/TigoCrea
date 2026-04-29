@@ -110,7 +110,7 @@ const Paquetes = () => {
           <h1 className="text-2xl font-bold">{selectedPaquete.nombre}</h1>
           <div className="flex gap-3">
             <button className="w-45 flex items-center gap-2 px-4 py-2 !bg-[#001EB4] text-white rounded-lg text-sm font-bold hover:!bg-blue-800">
-              <Save size={18} /> Editar template
+              <Save size={18} /> Guardar template
             </button>
           </div>
         </div>

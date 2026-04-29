@@ -72,7 +72,8 @@ const Report = ({ reporteId, onViewTable }) => {
     const [filters, setFilters] = useState({
         start_time_min: formatDateForInput(oneWeekAgo),
         start_time_max: formatDateForInput(now), 
-        title: ''
+        title: '',
+        mundial: false,
     });
     
     // ------------------------ ESTADOS MAIN COMPONENT -----------------------
@@ -430,8 +431,12 @@ const Report = ({ reporteId, onViewTable }) => {
                                     <input type="datetime-local" name="start_time_max" id="start_time_max" value={filters.start_time_max} onChange={handleFilterChange} className="w-full p-2 border border-slate-300 rounded-md text-sm" placeholder="dd/mm/yyyy, HH:MM:SS" />
                                 </div>
                                 <div>
-                                    <label htmlFor="title" className="block text-sm font-medium text-slate-600 mb-1">Cliente</label>
+                                    <label htmlFor="title" className="block text-sm font-medium text-slate-600 mb-1">Cliente:</label>
                                     <input type="text" name="title" id="title" value={filters.title} onChange={handleFilterChange} className="w-full p-2 border border-slate-300 rounded-md text-sm" placeholder="Buscar por Cliente..." />
+                                </div>
+                                <div>
+                                    <label htmlFor="title" className="block text-sm font-medium text-slate-600 mb-1">Mundial:</label>
+                                    <input type='checkbox' checked={filters.mundial} onChange={(e) => setFilters(prev => ({ ...prev, mundial: e.target.checked }))}/>
                                 </div>
                             </div>
                         </div>

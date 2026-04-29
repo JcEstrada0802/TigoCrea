@@ -110,13 +110,30 @@ def getReport(request, report_id):
         log_files = AsRunLogFile.objects.filter(system_id__in=system_ids)
         log_file_ids = log_files.values_list('id', flat=True)
         logs_queryset = LogEntry.objects.filter(log_file_id__in=log_file_ids).exclude(Q(title='empty') | Q(title='')).distinct()
+        mundial = filters.get('mundial', False)
+        search_title = filters.get('title', '')
+
+        if mundial:
+            # Si es mundial, a puro tubo debe tener 'MUN'
+            logs_queryset = logs_queryset.filter(title__icontains='MUN')
+            # Si además el usuario escribió algo en el buscador, lo filtramos también
+            if search_title:
+                logs_queryset = logs_queryset.filter(
+                    Q(title__icontains=search_title) | Q(clip_name__icontains=search_title)
+                )
+        else:
+            # Si mundial es false, NO debe contener 'MUN'
+            logs_queryset = logs_queryset.exclude(title__icontains='MUN')
+            # Y si hay texto en el buscador, aplicamos el filtro normal
+            if search_title:
+                logs_queryset = logs_queryset.filter(
+                    Q(title__icontains=search_title) | Q(clip_name__icontains=search_title)
+                )
 
         if filters.get('start_time_min'):
             logs_queryset = logs_queryset.filter(start_time__gte=filters['start_time_min'])
         if filters.get('start_time_max'):
             logs_queryset = logs_queryset.filter(start_time__lte=filters['start_time_max'])
-        if filters.get('title'):
-            logs_queryset = logs_queryset.filter(Q(title__icontains=filters['title']) | Q(clip_name__icontains=filters['title']))
 
         logs_queryset = logs_queryset.order_by('-start_time').select_related('log_file__system')
 

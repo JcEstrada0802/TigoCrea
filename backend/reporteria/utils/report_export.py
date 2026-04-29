@@ -10,17 +10,15 @@ def build_report_data(logs, headers, sistemas):
         "RA TM": 4,             #REALIDAD
         "GRAF 3D TM": 4,        #GRAFICO 3D
         "LM TM": 4,             #LOGO MARCADOR
+        "CUP TM": 4,            #CINTILLO UP
         "PROP TM": 5,           #PROPIEDAD
         "COR TM": 6,            #CORTINILLA
         "SEG TM": 6,            #SEGMENTO
         "SJP TM": 6,            #SEGMENTO JDP
         "PP TM": 7,             #PRODUCT PLACEMENT
         "PPS TM": 7,            #PRODUCT PLACEMENT SHOW
-        "REELPRODUC TM": 7,
-        "PRODUCPLIVE TM": 7,
         "FT TM": 8,             #FULLTRACK
         "FTS TM": 9,            #FULLTRACK SEDE
-        "CUP TM": 4,
     }
 
     summary_logs = [
