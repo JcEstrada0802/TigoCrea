@@ -4,7 +4,7 @@ export const copyBlock = (event) => {
     data: {
       title: event.title,
       duration: event.end - event.start,
-      extendedProps: event.extendedProps,
+      extendedProps: { ...event.extendedProps },
       backgroundColor: event.backgroundColor,
       borderColor: event.borderColor,
     }
@@ -23,7 +23,7 @@ export const copyDay = (event, allEvents) => {
       duration: ev.end - ev.start,
       // Offset: milisegundos desde el inicio de ese día (00:00:00)
       offset: ev.start - new Date(dayStr + 'T00:00:00'),
-      extendedProps: ev.extendedProps,
+      extendedProps: { ...ev.extendedProps },
       backgroundColor: ev.backgroundColor,
     }))
   };
@@ -54,7 +54,7 @@ export const copyWeek = (event, allEvents) => {
       duration: ev.end - ev.start,
       // Offset: milisegundos desde el lunes de esa semana
       offset: new Date(ev.start).getTime() - monday.getTime(),
-      extendedProps: ev.extendedProps,
+      extendedProps: { ...ev.extendedProps },
       backgroundColor: ev.backgroundColor,
     }))
   };
@@ -63,39 +63,46 @@ export const copyWeek = (event, allEvents) => {
 // --- FUNCIÓN DE PEGADO ---
 
 export const pasteItems = (targetDate, clipboard, calendarApi) => {
-  if (!clipboard) return []; // Retornamos un array para saber qué se creó
+  if (!clipboard) return [];
 
   const newEvents = [];
+  // Usamos una copia para no mutar el original por accidente
+  const referenceDate = new Date(targetDate);
 
   if (clipboard.type === 'BLOCK') {
+    // Para un bloque, pegamos exactamente donde se dio click
     const eventData = {
-      ...clipboard.data,
-      id: 'temp-' + Date.now() + Math.random(), // ID ÚNICO
-      start: targetDate,
-      end: new Date(targetDate.getTime() + clipboard.data.duration)
+      title: clipboard.data.title,
+      backgroundColor: clipboard.data.backgroundColor,
+      id: 'temp-' + Date.now() + Math.random(),
+      start: new Date(referenceDate),
+      end: new Date(referenceDate.getTime() + clipboard.data.duration),
+      extendedProps: clipboard.data.extendedProps
     };
     calendarApi.addEvent(eventData);
     newEvents.push(eventData);
-  } 
-  
-  else if (clipboard.type === 'DAY' || clipboard.type === 'WEEK') {
-    let baseTime;
-    
+
+  } else if (clipboard.type === 'DAY' || clipboard.type === 'WEEK') {
+    let baseTime = new Date(referenceDate);
+
     if (clipboard.type === 'DAY') {
-      baseTime = new Date(targetDate);
+      // Normalizamos a las 00:00 del día donde se hizo click
       baseTime.setHours(0, 0, 0, 0);
     } else {
-      const target = new Date(targetDate);
-      const day = target.getDay();
-      const diff = target.getDate() - day + (day === 0 ? -6 : 1);
-      baseTime = new Date(target.setDate(diff));
+      // Normalizamos al Lunes 00:00 de la semana donde se hizo click
+      const day = baseTime.getDay();
+      const diff = baseTime.getDate() - day + (day === 0 ? -6 : 1);
+      baseTime.setDate(diff);
       baseTime.setHours(0, 0, 0, 0);
     }
 
     clipboard.data.forEach((item, index) => {
       const eventData = {
-        ...item,
-        id: `temp-${Date.now()}-${index}`, // ID ÚNICO para cada uno
+        title: item.title,
+        backgroundColor: item.backgroundColor,
+        extendedProps: item.extendedProps,
+        id: `temp-${Date.now()}-${index}`,
+        // El offset se suma a la base normalizada (Lunes 00:00 o Día 00:00)
         start: new Date(baseTime.getTime() + item.offset),
         end: new Date(baseTime.getTime() + item.offset + item.duration)
       };
@@ -103,5 +110,6 @@ export const pasteItems = (targetDate, clipboard, calendarApi) => {
       newEvents.push(eventData);
     });
   }
+
   return newEvents;
 };

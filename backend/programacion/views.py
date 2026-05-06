@@ -346,8 +346,7 @@ def createEvent(request):
             "start": nuevo_evento.start,
             "end": nuevo_evento.end,
             "backgroundColor": nuevo_evento.background_color,
-            "extendedProps": nuevo_evento.extended_props,
-            "message": "Evento creado exitosamente"
+            "extendedProps": nuevo_evento.extended_props
         }, status=status.HTTP_201_CREATED)
 
     except Exception as e:

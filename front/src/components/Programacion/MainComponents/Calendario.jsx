@@ -198,20 +198,28 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
     if (newEventsUI.length === 0) return;
 
     // Preparamos el payload para el bulkSave
-    const dataToSave = newEventsUI.map(ev => ({
-      title: ev.title,
-      start: ev.start, 
-      end: ev.end,
-      background_color: ev.backgroundColor,
-      calendar_id: selectedCalId,
-      extended_props: ev.extendedProps || {}
-    }));
+    const dataToSave = newEventsUI.map(ev => {
+      const extraProps = ev.extendedProps || {};
+      return{
+        title: ev.title,
+        start: ev.start.toISOString(), 
+        end: ev.end.toISOString(),
+        background_color: ev.backgroundColor,
+        calendar_id: selectedCalId,
+        extended_props: {
+          ...extraProps,
+          lleno: extraProps.lleno ?? false
+        }
+      }
+    });
 
     try {
       const data = await bulkCreateEventsInDB(apiUrl, token, dataToSave);
       
       // Refrescamos todo para asegurar que los IDs de la DB queden vinculados a la UI
-      fetchEvents();
+      setTimeout(() => {
+        fetchEvents(); 
+      }, 500);
       showAlert('success', 'Eventos pegados exitosamente'); //VERIFICAR ERROR ACA
     } catch (e) {
       console.error("Error al persistir el pegado:", e);
@@ -565,9 +573,13 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
 
         stickyHeaderDates={true}
         editable={true}
-
+        
         // Eventos iniciales
         events={eventos}
+        datesSet={(dateInfo) => {
+          // Cada vez que cambien las fechas, ejecutamos el fetch
+          fetchEvents();
+        }}
 
         nowIndicator={true}
         allDaySlot={false}
@@ -587,12 +599,19 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
             if (e.target.closest('.fc-event')) return; 
             e.preventDefault();
             e.stopPropagation();
+
             const colEl = e.target.closest('.fc-timegrid-col') || e.target.closest('.fc-daygrid-day');
+            // Esta es la parte clave: buscamos el carril del slot (lane) o el slot mismo
             const slotEl = e.target.closest('.fc-timegrid-slot-lane') || e.target.closest('.fc-timegrid-slot');
+
             if (colEl) {
               const dateStr = colEl.getAttribute('data-date');
-              const timeStr = slotEl?.getAttribute('data-time') || '00:00:00';
+              // Si el slot no existe (clic en bordes), forzamos la búsqueda en el elemento padre del target
+              const effectiveSlot = slotEl || e.target.parentElement?.closest('.fc-timegrid-slot-lane');
+              const timeStr = effectiveSlot?.getAttribute('data-time') || '00:00:00';
+              
               const finalDate = new Date(`${dateStr}T${timeStr}`);
+
               if (!isNaN(finalDate.getTime())) {
                 setContextMenu({
                   x: e.clientX,

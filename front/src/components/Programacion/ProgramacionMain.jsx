@@ -206,7 +206,15 @@ function ProgramacionMain() {
           }`}>
           {/* Renderizamos los calendarios según el estado */}
           {[...Array(CalendarViews === 3 ? 4 : CalendarViews)].map((_, index) => (
-            <div key={index} className="min-h-0 min-w-0 bg-white rounded-xl shadow-inner border border-gray-200 overflow-hidden">
+            <div key={index} className="min-h-0 min-w-0 bg-white rounded-xl shadow-inner border border-gray-200 overflow-hidden"
+              style={{ 
+                borderRadius: '20px', // El radio que quieras
+                overflow: 'hidden',    // <--- OBLIGATORIO para cortar lo blanco
+                backgroundColor: '#001EB4', // El azul de fondo para que no se vea blanco mientras carga
+                display: 'flex',
+                flexDirection: 'column'
+              }}
+              >
               <CalendarioTigo 
                 id={`cal-${index}`} 
                 zoom={slotSize} 
