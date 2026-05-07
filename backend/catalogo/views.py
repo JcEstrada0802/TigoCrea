@@ -4,12 +4,13 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import Categoria, Contenido, Produccion, Segmento
 from django.db.models import Q
+from backend.permissions import *
 from .utils.timeToFrame import timecode_to_frames, frames_to_timecode
 from .Serializers import CatalogoCompletoSerializer
 
 # ---------------------- CREATE DE SECCIONES ----------------------
 @api_view(['POST'])
-@permission_classes([IsAdminUser])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger)])
 def createCategoria(request):
     try:
         nombre = request.data.get('nombre')
@@ -54,7 +55,7 @@ def createCategoria(request):
         )
 
 @api_view(['POST'])
-@permission_classes([IsAdminUser])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger)])
 def createContenido(request):
     try:
         nombre = request.data.get('nombre')
@@ -108,7 +109,7 @@ def createContenido(request):
         )
 
 @api_view(['POST'])
-@permission_classes([IsAdminUser])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger)])
 def createProduccion(request):
     try:
         titulo = request.data.get('titulo')
@@ -166,7 +167,7 @@ def createProduccion(request):
         )
 
 @api_view(['POST'])
-@permission_classes([IsAdminUser])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger)])
 def createSegmento(request):
     try:
         titulo = request.data.get('titulo')
@@ -222,7 +223,7 @@ def createSegmento(request):
 
 # ---------------------- GET DE SECCIONES ----------------------
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger)])
 def getCategorias(request):
     try:
         categorias = request.data.get('categorias',[])
@@ -252,7 +253,7 @@ def getCategorias(request):
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger)])
 def getContenidos(request):
     try:
         categorias = request.data.get('categorias',[])
@@ -288,7 +289,7 @@ def getContenidos(request):
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger)])
 def getContenido(request):
     try:
         contenidos = request.data.get('contenidos', [])
@@ -318,7 +319,7 @@ def getContenido(request):
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger)])
 def getProducciones(request):
     try:
         contenidos = request.data.get('contenidos',[])
@@ -352,7 +353,7 @@ def getProducciones(request):
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger)])
 def getProduccion(request):
     try:
         producciones = request.data.get('producciones', [])
@@ -385,7 +386,7 @@ def getProduccion(request):
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger)])
 def getSegmentos(request):
     try:
         producciones = request.data.get('producciones',[])
@@ -418,7 +419,7 @@ def getSegmentos(request):
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger)])
 def getSegmento(request):
     try:
         segmentos = request.data.get('segmentos', [])
@@ -452,7 +453,7 @@ def getSegmento(request):
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 # ---------------------- DELETE DE SECCIONES ----------------------
 @api_view(['POST'])
-@permission_classes([IsAdminUser])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger)])
 def delete_item_catalogo(request):
     # Ahora esperamos recibir 'ids' y también la 'seccion'
     seccion = request.data.get('seccion') 
@@ -494,7 +495,7 @@ def delete_item_catalogo(request):
 
 # ---------------------- UPDATE DE SECCIONES ----------------------
 @api_view(['POST', 'PUT']) # Soporta ambos, aunque PUT es el estándar para actualizar
-@permission_classes([IsAdminUser])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger)])
 def updateCategoria(request):
     try:
         categoria_id = request.data.get('id')
@@ -547,7 +548,7 @@ def updateCategoria(request):
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 @api_view(['POST', 'PUT'])
-@permission_classes([IsAdminUser])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger)])
 def updateContenido(request):
     try:
         id_db = request.data.get('id') # El ID primario de la DB
@@ -602,7 +603,7 @@ def updateContenido(request):
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 @api_view(['POST', 'PUT'])
-@permission_classes([IsAdminUser])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger)])
 def updateProduccion(request):
     try:
         id_db = request.data.get('id') # ID primario de la producción
@@ -662,7 +663,7 @@ def updateProduccion(request):
         )
     
 @api_view(['POST', 'PUT'])
-@permission_classes([IsAdminUser])
+@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger)])
 def updateSegmento(request):
     try:
         id_db = request.data.get('id')  # ID primario del segmento

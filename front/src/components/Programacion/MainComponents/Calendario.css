@@ -8,12 +8,15 @@
   overflow: hidden; 
   border: 1px solid #f0f0f0 !important;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  width: 100% !important;
+  max-width: 100% !important;
 }
 
 /* Redondear bordes internos */
 .fc-view-harness, 
 .fc-scrollgrid {
   border-radius: 20px !important;
+  width: 100% !important;
   overflow: hidden;
   border: none !important;
 }
@@ -393,4 +396,41 @@
 .led-red {
   background-color: #e74c3c;
   box-shadow: 0 0 8px #e74c3c;
+}
+
+/* ==========================================================================
+   LED INDICADOR DE BLOQUE
+   ========================================================================== */
+
+
+/* Tamaño normal (cuando no es compacto) */
+.custom-event-container {
+  font-size: 0.75rem;
+  padding: 2px;
+}
+
+.custom-event-container .event-time {
+  font-size: 0.62rem;
+}
+
+/* --- TAMAÑO COMPACTO (Cuando hay 2 o 4 calendarios) --- */
+.custom-event-container.compact-text {
+  font-size: 0.60rem !important; /* Letra más pequeña para el título */
+  padding: 0px 2px !important;
+}
+
+.custom-event-container.compact-text .event-title {
+  white-space: nowrap; /* Evita que el texto haga salto de línea */
+}
+
+.custom-event-container.compact-text .event-time {
+  font-size: 0.55rem !important; /* Hora casi minúscula */
+  opacity: 0.9;
+}
+
+/* Opcional: Reducir el LED en vista compacta para que no quite espacio */
+.compact-text .led-indicator {
+  width: 7px;
+  height: 7px;
+  margin-right: 3px;
 }

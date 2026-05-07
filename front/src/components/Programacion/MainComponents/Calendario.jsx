@@ -443,7 +443,7 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
                         showAlert('success', 'Exportación iniciada con éxito.');
                     } catch (error) {
                         if (error.message === "Bloques incompletos") {
-                            showAlert('error', `No se puede exportar. Faltan llenar: ${error.bloques.join(', ')}`);
+                            showAlert('warning', `No se puede exportar, faltan Bloques por llenar.`);
                         } else {
                             showAlert('error', 'Ocurrió un error inesperado al exportar.');
                         }
@@ -502,7 +502,7 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
     const endTime = eventInfo.event.end?.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
 
     return (
-      <div className="custom-event-container" style={{ fontSize: '0.75rem', lineHeight: '1.1' }}>
+      <div className={`custom-event-container ${isCompact ? 'compact-text' : ''}`} style={{ lineHeight: '1.1' }}>
         <div className="event-title" style={{ 
           overflow: 'hidden', 
           textOverflow: 'ellipsis',
@@ -512,13 +512,23 @@ const CalendarioTigo = ({ id, zoom, clipboard, setClipboard, isCompact, importCo
           {eventInfo.event.title}
         </div>
         <div className="event-top-row" style={{ display: 'flex', alignItems: 'center', marginBottom: '2px' }}>
-          <b className="event-time" style={{ color: '#FFF', fontSize: '0.62rem', fontWeight: '400'}}>
+          <b className="event-time" style={{ color: '#FFF', fontWeight: '400'}}>
             {startTime} {endTime ? `- ${endTime}` : ''}
           </b>
         </div>
       </div>
     );
   };
+  // REDIBUJAR EL CALENDARIO CUANDO SE CAMBIA LA VISTA
+  useEffect(() => {
+    const calendarApi = calendarRef.current?.getApi();
+    if (calendarApi) {
+      // Le damos un mini timeout para que el DOM termine de aplicar las clases de CSS
+      setTimeout(() => {
+        calendarApi.updateSize();
+      }, 100); 
+    }
+  }, [isCompact]);
 
   const updateEventInState = (eventId, updatedProps) => {
     setEventos(prev => prev.map(ev => {
