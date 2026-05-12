@@ -1,6 +1,7 @@
 from datetime import timedelta, datetime
 from reporteria.models import AsRunLogFile, BroadcastSystem
-from django.db import transaction, IntegrityError
+from django.db import transaction
+import xml.etree.ElementTree as ET
 from zoneinfo import ZoneInfo
 from .upgrader import upgrade
 from pathlib import Path
@@ -24,7 +25,8 @@ def procesar_archivo(ruta: Path, system_name) -> dict:
         "SquidPlus": "Squid TS+",
         "SquidPlusLat": "Squid Latino",
         "Xpression": "Xpression",
-        "Igson-Nica": "IgsonNica"
+        "Igson-Nica": "IgsonNica",
+        "Fox-System": "Fox"
     }
     real_system_name = folder_to_system.get(system_name)
 
@@ -62,6 +64,7 @@ def procesar_archivo(ruta: Path, system_name) -> dict:
             case "SquidPlusLat": PSF(ruta, "Squid Latino", log_file_obj)
             case "Xpression": PXP(ruta, log_file_obj)
             case "Igson-Nica": PNF(ruta, "IgsonNica", log_file_obj)
+            case "Fox-System": PFF(ruta, "FoxSystem", log_file_obj)
     except Exception as e:
         print(f"{get_now()} [ERROR] Falló procesar {file_name}: {e}")
         log_file_obj.delete()
@@ -488,17 +491,97 @@ def PRF(ruta, sistema, log_file_obj):
     upgrade(df_final, log_file_obj, sistema, desc)
 
 # PROCESS UPLAY FILES
-def PUP(ruta):
-    pass
-
-# PROCESS REGION PLAYER
-def PRP(ruta):
+def PFF(ruta, sistema, log_file_obj):
     file = os.path.basename(ruta)
-    pass
+    
+    try:
+        tree = ET.parse(ruta)
+        root = tree.getroot()
+    except Exception as e:
+        print(f"Error al parsear el archivo XML '{file}': {e}")
+        return pd.DataFrame()
+
+    parsed_records = []
+    channel_main = root.attrib.get('channel', 'Unknown')
+    event_list = root.find('EventList')
+    
+    if event_list is None:
+        return pd.DataFrame()
+
+    children = list(event_list)
+    for i in range(len(children)):
+        if children[i].tag == 'Content':
+            content_node = children[i]
+            detail_node = children[i+1] if (i+1) < len(children) and children[i+1].tag == 'AsRunDetail' else None
+            
+            if detail_node is not None:
+                name = content_node.findtext('Name', '')
+                status = detail_node.findtext('Status', '')
+                
+                start_dt_node = detail_node.find('StartDateTime/SmpteDateTime')
+                duration_node = detail_node.find('Duration/SmpteDuration')
+                
+                if start_dt_node is not None and duration_node is not None:
+                    fecha_str = start_dt_node.attrib.get('broadcastDate', '')
+                    hora_str = start_dt_node.findtext('SmpteTimeCode', '00:00:00')
+                    duracion_str = duration_node.findtext('SmpteTimeCode', '00:00:00')
+                    
+                    try:
+                        # 1. Parseo de tiempos
+                        start_time = datetime.strptime(f"{fecha_str} {hora_str}", '%Y-%m-%d %H:%M:%S')
+                        
+                        # 2. Convertir duración a objeto timedelta (Requerido por DurationField)
+                        h, m, s = map(int, duracion_str.split(':'))
+                        duration_td = timedelta(hours=h, minutes=m, seconds=s)
+                        
+                        end_time = start_time + duration_td
+                        
+                        parsed_records.append({
+                            'start_time': start_time,
+                            'end_time': end_time,
+                            'duration': duration_td, # Ahora es un objeto timedelta
+                            'title_raw': name,
+                            'status': status,
+                            'channel': channel_main
+                        })
+                    except ValueError:
+                        continue
+
+    if not parsed_records:
+        return pd.DataFrame()
+
+    df_raw = pd.DataFrame(parsed_records)
+
+    # 3. Construcción del DataFrame final con mapeo exacto al modelo LogEntry
+    df_final = pd.DataFrame({
+        'start_time': df_raw['start_time'],
+        'end_time': df_raw['end_time'],
+        'duration': df_raw['duration'],
+        
+        # Mapeo de nombres según tu LogEntry class
+        'title': df_raw['title_raw'].str.replace('.mp4', '', case=False).str.replace('_', ' ').str.replace('-', ' '),
+        'clipname': df_raw['title_raw'],
+        'content': df_raw['status'], 
+        
+        'event_type': 'AsRunReport',
+        
+        # El log_file debe ser la instancia o el ID que recibís por parámetro
+        'log_file': log_file_obj, 
+        
+        'metadata': df_raw.apply(lambda row: {
+            "channel": row['channel'],
+            "original_status": row['status'],
+            "system": sistema
+        }, axis=1)
+    })
+
+    # Ingesta
+    upgrade(df_final, log_file_obj, sistema, "xml_asrun " + sistema)
+    print(df_final)
+    
+    return df_final
 
 # PROCESS PLAYER IGSON (NICARAGUA)
-import numpy as np # Asegurate de tener este import
-
 def PNF(ruta, sistema, log_file_obj):
     
     col_specs = [

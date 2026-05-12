@@ -20,6 +20,7 @@ WATCH_FOLDERS = [
     Path(config('SERVER_PATH') + "/Xpression"),
     Path(config('SERVER_PATH') + "/Youplay"),
     Path(config('SERVER_PATH') + "/Igson-Nica"),
+    Path(config('SERVER_PATH') + "/Fox-System"),
 ]
 
 class MyHandler(FileSystemEventHandler):

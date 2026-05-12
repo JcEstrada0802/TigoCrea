@@ -10,7 +10,7 @@ from .Serializers import CatalogoCompletoSerializer
 
 # ---------------------- CREATE DE SECCIONES ----------------------
 @api_view(['POST'])
-@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger)])
+@permission_classes([IsAuthenticated & (IsAdminUser | IsOnAirLogger)])
 def createCategoria(request):
     try:
         nombre = request.data.get('nombre')
@@ -55,7 +55,7 @@ def createCategoria(request):
         )
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger)])
+@permission_classes([IsAuthenticated & (IsAdminUser | IsOnAirLogger)])
 def createContenido(request):
     try:
         nombre = request.data.get('nombre')
@@ -109,7 +109,7 @@ def createContenido(request):
         )
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger)])
+@permission_classes([IsAuthenticated & (IsAdminUser | IsOnAirLogger)])
 def createProduccion(request):
     try:
         titulo = request.data.get('titulo')
@@ -167,7 +167,7 @@ def createProduccion(request):
         )
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger)])
+@permission_classes([IsAuthenticated & (IsAdminUser | IsOnAirLogger)])
 def createSegmento(request):
     try:
         titulo = request.data.get('titulo')
@@ -223,7 +223,7 @@ def createSegmento(request):
 
 # ---------------------- GET DE SECCIONES ----------------------
 @api_view(['POST'])
-@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger)])
+@permission_classes([IsAuthenticated & (IsAdminUser | IsOnAirLogger)])
 def getCategorias(request):
     try:
         categorias = request.data.get('categorias',[])
@@ -253,7 +253,7 @@ def getCategorias(request):
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger)])
+@permission_classes([IsAuthenticated & (IsAdminUser | IsOnAirLogger)])
 def getContenidos(request):
     try:
         categorias = request.data.get('categorias',[])
@@ -289,7 +289,7 @@ def getContenidos(request):
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 @api_view(['POST'])
-@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger)])
+@permission_classes([IsAuthenticated & (IsAdminUser | IsOnAirLogger)])
 def getContenido(request):
     try:
         contenidos = request.data.get('contenidos', [])
@@ -319,7 +319,7 @@ def getContenido(request):
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 @api_view(['POST'])
-@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger)])
+@permission_classes([IsAuthenticated & (IsAdminUser | IsOnAirLogger)])
 def getProducciones(request):
     try:
         contenidos = request.data.get('contenidos',[])
@@ -353,7 +353,7 @@ def getProducciones(request):
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger)])
+@permission_classes([IsAuthenticated & (IsAdminUser | IsOnAirLogger)])
 def getProduccion(request):
     try:
         producciones = request.data.get('producciones', [])
@@ -386,7 +386,7 @@ def getProduccion(request):
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger)])
+@permission_classes([IsAuthenticated & (IsAdminUser | IsOnAirLogger)])
 def getSegmentos(request):
     try:
         producciones = request.data.get('producciones',[])
@@ -419,7 +419,7 @@ def getSegmentos(request):
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 @api_view(['POST'])
-@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger)])
+@permission_classes([IsAuthenticated & (IsAdminUser | IsOnAirLogger)])
 def getSegmento(request):
     try:
         segmentos = request.data.get('segmentos', [])
@@ -453,7 +453,7 @@ def getSegmento(request):
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 # ---------------------- DELETE DE SECCIONES ----------------------
 @api_view(['POST'])
-@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger)])
+@permission_classes([IsAuthenticated & (IsAdminUser | IsOnAirLogger)])
 def delete_item_catalogo(request):
     # Ahora esperamos recibir 'ids' y también la 'seccion'
     seccion = request.data.get('seccion') 
@@ -495,7 +495,7 @@ def delete_item_catalogo(request):
 
 # ---------------------- UPDATE DE SECCIONES ----------------------
 @api_view(['POST', 'PUT']) # Soporta ambos, aunque PUT es el estándar para actualizar
-@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger)])
+@permission_classes([IsAuthenticated & (IsAdminUser | IsOnAirLogger)])
 def updateCategoria(request):
     try:
         categoria_id = request.data.get('id')
@@ -548,7 +548,7 @@ def updateCategoria(request):
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 @api_view(['POST', 'PUT'])
-@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger)])
+@permission_classes([IsAuthenticated & (IsAdminUser | IsOnAirLogger)])
 def updateContenido(request):
     try:
         id_db = request.data.get('id') # El ID primario de la DB
@@ -603,7 +603,7 @@ def updateContenido(request):
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 @api_view(['POST', 'PUT'])
-@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger)])
+@permission_classes([IsAuthenticated & (IsAdminUser | IsOnAirLogger)])
 def updateProduccion(request):
     try:
         id_db = request.data.get('id') # ID primario de la producción
@@ -663,7 +663,7 @@ def updateProduccion(request):
         )
     
 @api_view(['POST', 'PUT'])
-@permission_classes([IsAuthenticated & (IsAdLogger | IsOnAirLogger)])
+@permission_classes([IsAuthenticated & (IsAdminUser | IsOnAirLogger)])
 def updateSegmento(request):
     try:
         id_db = request.data.get('id')  # ID primario del segmento
@@ -725,7 +725,7 @@ def updateSegmento(request):
     
 # ------------------- GET DE CATALOGO COMPLETO -------------------
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def getFullCatalog(request):
     try:
         # Traemos categorías y pre-cargamos toda la cadena hacia abajo

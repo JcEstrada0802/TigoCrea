@@ -2,7 +2,7 @@ def build_report_data(logs, headers, sistemas):
     keys_map = {
         "SP TM": 0,             #SPOT
         "M+C TM": 1,            #MEN+CINT
-        "M+CG TM": 1,           #MEN+CINT GRABADO
+        "M+CG TM": 2,           #MEN+CINT GRABADO
         "CIN TM": 2,            #CINTILLO
         "CAPS TM": 3,
         "GRAF TM": 4,           #GRAFICO
