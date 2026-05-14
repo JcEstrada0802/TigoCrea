@@ -1,4 +1,7 @@
 from timecode import Timecode
+import re
+
+patron_tc = r"^\d{2}:\d{2}:\d{2}:\d{2}$"
 
 def frames_to_timecode(frames):
     # '29.97' activa automáticamente la lógica Drop Frame
@@ -9,6 +12,8 @@ def frames_to_timecode(frames):
 
 def timecode_to_frames(tc_str, framerate=29.97):
     try:
+        if not isinstance(tc_str, str) or not re.match(patron_tc, tc_str): 
+            return None
         parts = tc_str.replace(';', ':').split(':')
         h, m, s, f = map(int, parts)
 
@@ -31,9 +36,4 @@ def timecode_to_frames(tc_str, framerate=29.97):
         
         return int(frame_number - drop_frames)
     except:
-        return 0
-
-"""def timecode_to_frames(tc_str):
-    # Convierte el string de vuelta a frames (0-based)
-    tc = Timecode('29.97', tc_str)
-    return tc.frame_number"""
+        return None

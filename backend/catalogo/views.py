@@ -138,11 +138,15 @@ def createProduccion(request):
                 status=status.HTTP_404_NOT_FOUND
             )
         
-        duracion_total = timecode_to_frames(duracion_total)
-        print(duracion_total)
+        duracion_frames = timecode_to_frames(duracion_total)
+        if duracion_frames is None:
+            return Response(
+                {"error": "Formato de duración inválido. Use HH:MM:SS:FF"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         produccion = Produccion.objects.create(
            titulo = titulo,
-           duracion_total=duracion_total,
+           duracion_total=duracion_frames,
            orden_pauta=orden_pauta,
            origen=origen,
            type=tipo,
@@ -194,13 +198,48 @@ def createSegmento(request):
                 {"error": f"El Contenido con ID {produccion_id} no existe."},
                 status=status.HTTP_404_NOT_FOUND
             )
+
+        tcs_to_validate = {
+            "duración": duracion,
+            "TC In": tc_in,
+            "TC Out": tc_out
+        }
+        try:
+            results = {k: timecode_to_frames(v) for k, v in tcs_to_validate.items()}
+            for campo, valor_f in results.items():
+                if valor_f is None:
+                    return Response(
+                        {"error": f"El formato de {campo} es inválido. Use HH:MM:SS:FF"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                input_original = str(tcs_to_validate[campo])
+                if valor_f == 0 and input_original != "00:00:00:00":
+                    return Response(
+                        {"error": f"El valor de '{campo}' es inválido."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+            duracion_f = results["duración"]
+            tc_in_f = results["TC In"]
+            tc_out_f = results["TC Out"]
+            if tc_out_f <= tc_in_f:
+                 return Response(
+                    {"error": "El TC Out debe ser mayor al TC In."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        except Exception as e:
+            return Response(
+                {"error": "Formato de TimeCode incorrecto. Use HH:MM:SS:FF"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         segmento = Segmento.objects.create(
             titulo=titulo,
             id_media=id_media,
-            duracion= timecode_to_frames(duracion),
-            tc_in= timecode_to_frames(tc_in),
-            tc_out= timecode_to_frames(tc_out),
+            duracion= duracion_f,
+            tc_in= tc_in_f,
+            tc_out= tc_out_f,
             notas=notas,
             produccion=produccion_obj
         )
@@ -637,9 +676,16 @@ def updateProduccion(request):
                 {"error": f"El Contenido con ID {contenido_id} no existe."},
                 status=status.HTTP_404_NOT_FOUND
             )
+        
+        duracion_f = timecode_to_frames(duracion_total)
+        if duracion_f is None:
+            return Response(
+                {"error": "Formato de duración inválido. Use HH:MM:SS:FF"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         produccion.titulo = titulo
-        produccion.duracion_total = timecode_to_frames(duracion_total)
+        produccion.duracion_total = duracion_f
         produccion.origen = origen
         produccion.contenido = contenido_obj
         produccion.orden_pauta = ordenPauta
@@ -683,6 +729,45 @@ def updateSegmento(request):
             segmento = Segmento.objects.get(id=id_db)
         except Segmento.DoesNotExist:
             return Response({"error": "Segmento no encontrado."}, status=status.HTTP_404_NOT_FOUND)
+        
+        tcs_to_validate = {
+            "duración": duracion,
+            "TC In": tc_in,
+            "TC Out": tc_out
+        }
+        
+        try:
+            results = {k: timecode_to_frames(v) for k, v in tcs_to_validate.items()}
+            
+            for campo, valor_f in results.items():
+                if valor_f is None:
+                    return Response(
+                        {"error": f"El formato de '{campo}' es inválido. Debe ser HH:MM:SS:FF"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                input_original = str(tcs_to_validate[campo])
+                if valor_f == 0 and input_original != "00:00:00:00":
+                    return Response(
+                        {"error": f"El valor de '{campo}' es inválido."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
+            duracion_f = results["duración"]
+            tc_in_f = results["TC In"]
+            tc_out_f = results["TC Out"]
+
+            # Validación lógica de tiempos
+            if tc_out_f <= tc_in_f:
+                return Response(
+                    {"error": "El TC Out debe ser mayor al TC In."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        except Exception:
+            return Response(
+                {"error": "Error al procesar los TimeCodes. Verifique el formato."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         if Segmento.objects.filter(id_media=id_media).exclude(id=id_db).exists():
             return Response(
@@ -700,9 +785,9 @@ def updateSegmento(request):
 
         segmento.titulo = titulo
         segmento.id_media = id_media
-        segmento.duracion = timecode_to_frames(duracion)
-        segmento.tc_in = timecode_to_frames(tc_in)
-        segmento.tc_out = timecode_to_frames(tc_out)
+        segmento.duracion = duracion_f
+        segmento.tc_in = tc_in_f
+        segmento.tc_out = tc_out_f
         segmento.notas = notas
         segmento.produccion = produccion_obj
         segmento.save()

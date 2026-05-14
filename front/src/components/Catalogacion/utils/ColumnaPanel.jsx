@@ -43,14 +43,22 @@ export default function ColumnaPanel({ title, items, onAdd, onEdit, onDelete, on
           ) : (
             <ul className="space-y-2">
               {items.map((item) => (
-                <li key={item.id} className="flex items-center space-x-2 p-1 rounded hover:bg-gray-100">
+                <li key={item.id} 
+                  onClick={() => {
+                    // Buscamos el checkbox por ID y simulamos el click para que cambie
+                    const cb = document.getElementById(`${title}-${item.id}`);
+                    if (cb) cb.click();
+                  }}
+                  className="flex items-center space-x-2 p-2 rounded hover:bg-gray-200 cursor-pointer transition-colors"
+                >
                   <input
                     type="checkbox"
                     id={`${title}-${item.id}`}
+                    onClick={(e) => e.stopPropagation()} 
                     onChange={(e) => {
                       onSelect(item.id, e.target.checked); 
                     }}
-                    className="h-4 w-4 rounded text-blue-600 border-gray-300 focus:ring-blue-500"
+                    className="h-4 w-4 rounded text-blue-600 border-gray-300 focus:ring-blue-500 cursor-pointer"
                   />
                   <div
                     className="w-8 h-4 rounded-sm border border-gray-300"
@@ -60,6 +68,7 @@ export default function ColumnaPanel({ title, items, onAdd, onEdit, onDelete, on
                   <label 
                     htmlFor={`${title}-${item.id}`} 
                     className="text-sm text-indigo-900 select-none cursor-pointer"
+                    onClick={(e) => e.stopPropagation()}
                   >
                     {item.label}
                   </label>

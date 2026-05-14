@@ -103,6 +103,29 @@ function CreateProdModal({ isOpen, onClose, onFinish, selectedCont, config }) {
     }
   };
 
+  const handleDuracionChange = (e) => {
+    let input = e.target.value.replace(/\D/g, '').substring(0, 8);
+    let formatted = "";
+    if (input.length > 0) {
+        // Horas
+        formatted += input.substring(0, 2);
+        if (input.length > 2) {
+          // Minutos
+          formatted += ":" + input.substring(2, 4);
+          if (input.length > 4) {
+              // Segundos
+              formatted += ":" + input.substring(4, 6);
+              if (input.length > 6) {
+                  // Cuadros (Frames) - Usamos ":" o "." según prefieras
+                  formatted += ":" + input.substring(6, 8);
+              }
+          }
+        }
+      }
+
+      setDuracion(formatted);
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -201,10 +224,9 @@ function CreateProdModal({ isOpen, onClose, onFinish, selectedCont, config }) {
                 <input
                   className="input"
                   type="text"
-                  placeholder="HH:MM:SS:FF"
                   required
                   value={duracion}
-                  onChange={(e) => setDuracion(e.target.value)}
+                  onChange={handleDuracionChange}
                 />
                 <span>Duración Total (HH:MM:SS:FF)*</span>
               </label>

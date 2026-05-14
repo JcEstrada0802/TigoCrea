@@ -19,9 +19,9 @@ function CreateSegModal({ isOpen, onClose, onFinish, selectedProd, config }) {
   // Estados basados en el modelo Segmento
   const [titulo, setTitulo] = useState('');
   const [idMedia, setIdMedia] = useState('');
-  const [duracion, setDuracion] = useState('00:00:00:00');
-  const [tcIn, setTcIn] = useState('00:00:00:00');
-  const [tcOut, setTcOut] = useState('00:00:00:00');
+  const [duracion, setDuracion] = useState('');
+  const [tcIn, setTcIn] = useState('');
+  const [tcOut, setTcOut] = useState('');
   const [notas, setNotas] = useState('');
   
   // Estado para la lista de producciones y selección
@@ -47,9 +47,9 @@ function CreateSegModal({ isOpen, onClose, onFinish, selectedProd, config }) {
       if (config.mode === "create") {
         setTitulo('');
         setIdMedia('');
-        setDuracion('00:00:00:00');
-        setTcIn('00:00:00:00');
-        setTcOut('00:00:00:00');
+        setDuracion('');
+        setTcIn('');
+        setTcOut('');
         setNotas('');
         setSelectedProduccionId(selectedProd || '');
       } 
@@ -91,9 +91,9 @@ function CreateSegModal({ isOpen, onClose, onFinish, selectedProd, config }) {
       const payload = {
         titulo: titulo,
         id_media: idMedia,
-        duracion: duracion, // "HH:MM:SS"
-        tc_in: tcIn,       // "HH:MM:SS"
-        tc_out: tcOut,     // "HH:MM:SS"
+        duracion: duracion, // "HH:MM:SS:FF"
+        tc_in: tcIn,       // "HH:MM:SS:FF"
+        tc_out: tcOut,     // "HH:MM:SS:FF"
         produccion_id: selectedProduccionId,
         notas: notas || ''
       };
@@ -114,6 +114,29 @@ function CreateSegModal({ isOpen, onClose, onFinish, selectedProd, config }) {
       console.error(error);
       onFinish('error', mensajeError, 'segmentos');
     }
+  };
+
+  const handleDuracionChange = (e, setter) => {
+    let input = e.target.value.replace(/\D/g, '').substring(0, 8);
+    let formatted = "";
+    if (input.length > 0) {
+        // Horas
+        formatted += input.substring(0, 2);
+        if (input.length > 2) {
+            // Minutos
+            formatted += ":" + input.substring(2, 4);
+            if (input.length > 4) {
+                // Segundos
+                formatted += ":" + input.substring(4, 6);
+                if (input.length > 6) {
+                    // Cuadros (Frames) - Usamos ":" o "." según prefieras
+                    formatted += ":" + input.substring(6, 8);
+                }
+            }
+        }
+    }
+
+    setter(formatted);
   };
 
   if (!isOpen) return null;
@@ -181,7 +204,7 @@ function CreateSegModal({ isOpen, onClose, onFinish, selectedProd, config }) {
                   type="text"
                   required
                   value={tcIn}
-                  onChange={(e) => setTcIn(e.target.value)}
+                  onChange={(e) => handleDuracionChange(e, setTcIn)}
                 />
                 <span>TC In (HH:MM:SS:FF)*</span>
               </label>
@@ -194,7 +217,7 @@ function CreateSegModal({ isOpen, onClose, onFinish, selectedProd, config }) {
                   type="text"
                   required
                   value={tcOut}
-                  onChange={(e) => setTcOut(e.target.value)}
+                  onChange={(e) => handleDuracionChange(e, setTcOut)}
                 />
                 <span>TC Out (HH:MM:SS:FF)*</span>
               </label>
@@ -207,9 +230,9 @@ function CreateSegModal({ isOpen, onClose, onFinish, selectedProd, config }) {
                   type="text"
                   required
                   value={duracion}
-                  onChange={(e) => setDuracion(e.target.value)}
+                  onChange={(e) => handleDuracionChange(e, setDuracion)}
                 />
-                <span>Duración*</span>
+                <span>Duración (HH:MM:SS:FF)*</span>
               </label>
 
               {/* Notas */}

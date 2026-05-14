@@ -88,6 +88,22 @@ const EditBlockModal = ({ isVisible, onClose, onSave, position, blockData }) => 
         onClose();
     };
 
+    const handleDuracionChange = (e) => {
+        let input = e.target.value.replace(/\D/g, '').substring(0, 6);
+        let formatted = "";
+        if (input.length > 0) {
+            formatted += input.substring(0, 2);
+            if (input.length > 2) {
+                formatted += ":" + input.substring(2, 4);
+                if (input.length > 4) {
+                    formatted += ":" + input.substring(4, 6);
+                }
+            }
+        }
+
+        setDuracion(formatted);
+    };
+
     return (
         <div 
             ref={modalRef} 
@@ -132,7 +148,7 @@ const EditBlockModal = ({ isVisible, onClose, onSave, position, blockData }) => 
                         type="text" 
                         placeholder="00:00:00"
                         value={duracion}
-                        onChange={(e) => setDuracion(e.target.value)}
+                        onChange={handleDuracionChange}
                         className="w-full px-4 py-2.5 bg-gray-50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 focus:bg-white transition-all text-sm font-mono font-bold text-gray-600"
                     />
                 </div>
