@@ -11,6 +11,7 @@ import {
 import axios from 'axios';
 
 function CreateProdModal({ isOpen, onClose, onFinish, selectedCont, config }) {
+  const modalTitle = config.mode === "create" ? "Nueva Producción" : "Editar Producción";
   const apiUrl = import.meta.env.VITE_API_URL;
   const token = localStorage.getItem("token");
 
@@ -129,13 +130,13 @@ function CreateProdModal({ isOpen, onClose, onFinish, selectedCont, config }) {
   if (!isOpen) return null;
 
   return (
-    <ModalOverlay onClick={onClose}>
+    <ModalOverlay>
       <ModalContent onClick={(e) => e.stopPropagation()}>
         <StyledWrapper>
           <form className="form" onSubmit={handleSubmit}>
             <p className="title">
               <FilmIcon className="icon" />
-              Nueva Producción
+              {modalTitle}
             </p>
             
             <div className="form-grid">

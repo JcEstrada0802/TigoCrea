@@ -11,6 +11,7 @@ import {
 import axios from 'axios';
 
 function CreateContModal({ isOpen, onClose, onFinish, selectedCat, config }) {
+  const modalTitle = config.mode === "create" ? "Nuevo Contenido" : "Editar Contenido";
   const apiUrl = import.meta.env.VITE_API_URL;
   const token = localStorage.getItem("token");
   // Estados basados estrictamente en el modelo Contenido
@@ -108,13 +109,13 @@ function CreateContModal({ isOpen, onClose, onFinish, selectedCat, config }) {
   if (!isOpen) return null;
 
   return (
-    <ModalOverlay onClick={onClose}>
+    <ModalOverlay>
       <ModalContent onClick={(e) => e.stopPropagation()}>
         <StyledWrapper>
           <form className="form" onSubmit={handleSubmit}>
             <p className="title">
               <DocumentTextIcon className="icon" />
-              Nuevo Contenido
+              {modalTitle}
             </p>
             
             <div className="form-grid">

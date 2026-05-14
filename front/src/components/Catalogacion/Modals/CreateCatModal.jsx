@@ -5,6 +5,7 @@ import { SwatchIcon } from '@heroicons/react/24/solid';
 import axios from 'axios';
 
 function CreateCatModal({ isOpen, onClose, onFinish, config}) {
+  const modalTitle = config.mode === "create" ? "Nueva Categoria" : "Editar Categoria";
   const apiUrl = import.meta.env.VITE_API_URL;
   const token = localStorage.getItem("token");
   
@@ -79,13 +80,13 @@ function CreateCatModal({ isOpen, onClose, onFinish, config}) {
   if (!isOpen) return null;
 
   return (
-    <ModalOverlay onClick={onClose}>
+    <ModalOverlay>
       <ModalContent onClick={(e) => e.stopPropagation()}>
         <StyledWrapper>
           <form className="form" onSubmit={handleSubmit}>
             <p className="title">
               <TagIcon className="icon" /> {/* Icono en el título */}
-              Categoría de Contenido
+              {modalTitle}
             </p>
             
             <div className="form-grid">

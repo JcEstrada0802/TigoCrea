@@ -13,6 +13,7 @@ import {
 import axios from 'axios';
 
 function CreateSegModal({ isOpen, onClose, onFinish, selectedProd, config }) {
+  const modalTitle = config.mode === "create" ? "Nuevo Segmento" : "Editar Segmento";
   const apiUrl = import.meta.env.VITE_API_URL;
   const token = localStorage.getItem("token");
 
@@ -142,13 +143,13 @@ function CreateSegModal({ isOpen, onClose, onFinish, selectedProd, config }) {
   if (!isOpen) return null;
 
   return (
-    <ModalOverlay onClick={onClose}>
+    <ModalOverlay>
       <ModalContent onClick={(e) => e.stopPropagation()}>
         <StyledWrapper>
           <form className="form" onSubmit={handleSubmit}>
             <p className="title">
               <RectangleStackIcon className="icon" />
-              Nuevo Segmento
+              {modalTitle}
             </p>
             
             <div className="form-grid">
