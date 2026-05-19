@@ -123,7 +123,7 @@ def getReport(request, report_id):
                 )
         else:
             # Si mundial es false, NO debe contener 'MUN'
-            logs_queryset = logs_queryset.exclude(title__icontains='MUN')
+            logs_queryset = logs_queryset.exclude(Q(title__icontains='MUN') | Q(clip_name__icontains="MUN"))
             # Y si hay texto en el buscador, aplicamos el filtro normal
             if search_title:
                 logs_queryset = logs_queryset.filter(
