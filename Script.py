@@ -2,8 +2,8 @@ import datetime
 import os
 import shutil
 
-
-DestinoBase = "C:\\Users\\TS-WORKFLOW\\Documents\\TigoBPlanning\\TigoCrea\\datasource\\"
+# 1. CORREGIDO: Destino base real en Linux (con 'S' mayúscula en dataSource)
+DestinoBase = "/home/b-planning/Documents/BPlanning/TigoCrea/dataSource/"
 
 def ejecutar_tarea():
     now = datetime.datetime.now()
@@ -13,20 +13,27 @@ def ejecutar_tarea():
     formato3 = yesterday.strftime('%d%m%Y')
     formato4 = yesterday.strftime('y%Ym%md%d')
     formato5 = yesterday.strftime('%d-%m-%Y')
-    FechasAyer = [formato1, formato2, formato3, formato4, formato5]
+    
+    # 2. CORREGIDO: Agregamos el formato de 6 dígitos (ej: '180526') que usa Nicaragua
+    formato6 = yesterday.strftime('%d%m%y') 
+    
+    FechasAyer = [formato1, formato2, formato3, formato4, formato5, formato6]
     print(FechasAyer)
-    buscar_archivo(FechasAyer,"X:\\AsrunLog",os.path.join(DestinoBase,"Air-manager"))
-    buscar_archivo(FechasAyer,"T:\\ReportMarsis",os.path.join(DestinoBase,"Marsis-vix"))
-    buscar_archivo(FechasAyer,"S:\\QC AsRun",os.path.join(DestinoBase,"Igson-cue"))
-    #buscar_archivo(FechasAyer,FuenteBase+"Region+Player",DestinoBase+"Region+Player"))
-    buscar_archivo(FechasAyer,"U:\\AsRunLogs",os.path.join(DestinoBase,"ProduccionTS+"))
-    buscar_archivo(FechasAyer,"V:\\logs\\AsRun",os.path.join(DestinoBase,"Xpression"))
-
+    
+    # --- RUTAS DE ORIGEN Y DESTINO REALES PARA LINUX ---
+    buscar_archivo(FechasAyer, "/mnt/AirManager", os.path.join(DestinoBase, "Air-manager"))
+    buscar_archivo(FechasAyer, "/mnt/MarsisVix", os.path.join(DestinoBase, "Marsis-vix"))
+    buscar_archivo(FechasAyer, "/mnt/IgsonCue", os.path.join(DestinoBase, "Igson-cue"))
+    
+    # 3. CORREGIDO: Caso Nicaragua (Busca en Master1 y guarda en Igson-Nica)
+    buscar_archivo(FechasAyer, "/mnt/ProdTS/Master1", os.path.join(DestinoBase, "Igson-Nica"))
+    
+    buscar_archivo(FechasAyer, "/mnt/Xpression", os.path.join(DestinoBase, "Xpression"))
 
     # ------------------------- CASOS ESPECIALES ------------------------- 
-    buscar_archivo(FechasAyer,"W:\\AsRunLog",DestinoBase) #Squid Files
-    copiar_simple("R:\\DLG-TS+",os.path.join(DestinoBase,"Dlg-ts+"))
-    copiar_simple("R:\\DLG-VIX",os.path.join(DestinoBase,"Dlg-vix"))
+    buscar_archivo(FechasAyer, "/mnt/SquidLogs", DestinoBase) # Squid Files
+    copiar_simple("/mnt/DlgReports/DLG-TS+", os.path.join(DestinoBase, "Dlg-ts+"))
+    copiar_simple("/mnt/DlgReports/DLG-VIX", os.path.join(DestinoBase, "Dlg-vix"))
 
 
 def mover_archivo(ruta_fuente_completa, ruta_destino_completa):
@@ -35,7 +42,6 @@ def mover_archivo(ruta_fuente_completa, ruta_destino_completa):
         shutil.copy2(ruta_fuente_completa, ruta_destino_completa)
         print(f"COPIADO: {ruta_fuente_completa} -> {ruta_destino_completa}")
         return True
-    
     except FileNotFoundError:
         print(f"ERROR: Archivo no encontrado en la fuente: {ruta_fuente_completa}")
         return False
@@ -62,15 +68,13 @@ def copiar_simple(ruta_fuente, ruta_destino):
             
         archivos_con_tiempo.sort()
         
-
         timestamp_reciente, archivo_mas_reciente = archivos_con_tiempo[-1]
         ruta_archivo_fuente = os.path.join(ruta_fuente, archivo_mas_reciente)
         ruta_archivo_destino = os.path.join(ruta_destino, archivo_mas_reciente)
         
-        fecha_legible = datetime.datetime.fromtimestamp(timestamp_reciente)
-
-        ruta_archivo_fuente = os.path.join(ruta_fuente, archivo_mas_reciente)
-        ruta_archivo_destino = os.path.join(ruta_destino, archivo_mas_reciente)
+        # Crear directorio destino si no existe (previene errores en Linux)
+        os.makedirs(os.path.dirname(ruta_archivo_destino), exist_ok=True)
+        
         shutil.copy2(ruta_archivo_fuente, ruta_archivo_destino)
         print(f"COPIADO: {ruta_archivo_fuente} -> {ruta_archivo_destino}")
         
@@ -83,7 +87,9 @@ def buscar_archivo(FechasAyer, ruta_fuente, ruta_destino):
         archivos_en_fuente = os.listdir(ruta_fuente)
         archivos_squid_encontrados = 0
         archivo_procesado = False
-        es_squid = (folder_path == "AsRunLog")
+        
+        # 4. CORREGIDO: Ajuste de la condición de Squid para Linux
+        es_squid = (folder_path == "SquidLogs")
         
         for formato in FechasAyer:
             if es_squid and archivos_squid_encontrados >= 2:
@@ -96,17 +102,18 @@ def buscar_archivo(FechasAyer, ruta_fuente, ruta_destino):
                     ruta_archivo_fuente = os.path.join(ruta_fuente, nombre_archivo)
                     ruta_archivo_destino = os.path.join(ruta_destino, nombre_archivo) 
                     if es_squid:
-                        if nombre_archivo[-5]=="0":
+                        if nombre_archivo[-5] == "0":
                             ruta_archivo_destino = os.path.join(ruta_destino, "SquidPlus", nombre_archivo)
-                        elif nombre_archivo[-5]=="1":
+                        elif nombre_archivo[-5] == "1":
                             ruta_archivo_destino = os.path.join(ruta_destino, "SquidPlusLat", nombre_archivo)
                         else:
                             continue
                     if mover_archivo(ruta_archivo_fuente, ruta_archivo_destino):
                         archivo_procesado = True
                         if es_squid:
-                            if es_squid: archivos_squid_encontrados += 1 
-                            else: return
+                            archivos_squid_encontrados += 1 
+                        else:
+                            break  # Salta al siguiente formato/directorio si no es squid
         if not archivo_procesado:
             print(f"AVISO: No se encontró ningún archivo con el patrón de fecha para {folder_path} en {ruta_fuente}")
 
