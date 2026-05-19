@@ -115,7 +115,7 @@ def getReport(request, report_id):
 
         if mundial:
             # Si es mundial, a puro tubo debe tener 'MUN'
-            logs_queryset = logs_queryset.filter(title__icontains='MUN')
+            logs_queryset = logs_queryset.filter(Q(title__icontains='MUN') | Q(clip_name__icontains='MUN'))
             # Si además el usuario escribió algo en el buscador, lo filtramos también
             if search_title:
                 logs_queryset = logs_queryset.filter(
